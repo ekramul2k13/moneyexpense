@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Expense Tracker</title>
+
+<!-- External Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+<style>
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg-main: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-dark);
+    margin: 0;
+    padding: 0;
+}
+
+/* Auth Screens */
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+}
+
+.auth-card {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.auth-card h2 {
+    margin-top: 0;
+    color: var(--primary);
+    text-align: center;
+    font-size: 24px;
+}
+
+.auth-card p.subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-control {
+    width: 100%;
+    height: 46px; /* Touch friendly height */
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 16px; /* 16px prevents iOS Auto-zoom on focus */
+    transition: border-color 0.2s;
+    background-color: #fff;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn {
+    width: 100%;
+    height: 48px; /* Touch-optimized height */
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover, .btn:active {
+    background: var(--primary-hover);
+}
+
+.btn-secondary { background: #64748b; }
+.btn-secondary:hover, .btn-secondary:active { background: #475569; }
+
+.auth-toggle {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.auth-toggle a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.alert-msg {
+    color: var(--danger);
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 15px;
+    min-height: 18px;
+}
+
+/* Dashboard Shell */
+.app-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 12px;
+}
+
+.app-header {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 20px rgba(37,99,235,0.2);
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.header-center {
+    text-align: center;
+}
+
+.header-center h1 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.header-center p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+/* Dropdowns & Navigation */
+.dropdown-container {
+    position: relative;
+}
+
+.header-btn {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 12px;
+    min-height: 40px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 48px;
+    background: white;
+    width: 220px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 300;
+    overflow: hidden;
+}
+
+.dropdown-menu.left-align { left: 0; }
+.dropdown-menu.right-align { right: 0; }
+.dropdown-menu.show { display: block; }
+
+.dropdown-item {
+    padding: 14px 18px;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.dropdown-item:hover, .dropdown-item:active { background: #f8fafc; }
+.dropdown-item.text-danger { color: var(--danger); border-top: 1px solid #f1f5f9; }
+
+/* Form Section Grid */
+.expense-form-grid {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax(180px, 1fr) );
+    gap: 12px;
+}
+
+.expense-form-grid button { grid-column: 1 / -1; }
+
+/* Summaries */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.summary-card {
+    padding: 14px;
+    border-radius: 14px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.summary-card.income { background: linear-gradient(135deg, #10b981, #047857); }
+.summary-card.expense { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.summary-card.balance { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.summary-card.previous { background: linear-gradient(135deg, #64748b, #334155); }
+
+.summary-card h4 { margin: 0; font-size: 11px; text-transform: uppercase; opacity: 0.9; }
+.summary-card h2 { margin: 6px 0 0; font-size: 20px; }
+
+/* Analytics and Report */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.chart-box, .report-box {
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    text-align: center;
+}
+
+.chart-box h3, .report-box h3 { margin-top: 0; font-size: 16px; }
+
+.chart-box canvas {
+    max-width: 100% !important;
+    max-height: 230px !important;
+    margin: 0 auto;
+}
+
+.report-inputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.report-controls {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0 10px;
+}
+
+/* Data Table Structure */
+.table-container { 
+    overflow-x: auto; 
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 13px;
+}
+
+th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+
+.table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.btn-action {
+    padding: 8px 12px;
+    min-height: 36px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit { background: #e0e7ff; color: #4338ca; }
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-pay { background: #d1fae5; color: #047857; }
+.btn-history { background: #f3e8ff; color: #6b21a8; }
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.badge-pending { background: #fef3c7; color: #b45309; }
+.badge-partial { background: #e0f2fe; color: #0369a1; }
+.badge-repaid { background: #d1fae5; color: #047857; }
+.badge-borrowed { background: #fee2e2; color: #b91c1c; }
+.badge-lent { background: #e0e7ff; color: #4338ca; }
+
+.history-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 400;
+    padding: 10px;
+}
+
+.modal-card {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.modal-card.large {
+    max-width: 850px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+.close-modal { cursor: pointer; font-size: 28px; color: var(--text-muted); line-height: 1; }
+
+.modal-summary-bar {
+    display: flex;
+    justify-content: space-between;
+    background: #f8fafc;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Desktop Styles Overrides */
+@media (min-width: 769px) {
+    .analytics-grid { grid-template-columns: 1fr 1fr; }
+    .summary-grid { grid-template-columns: repeat(4, 1fr); }
+    .summary-card h2 { font-size: 24px; }
+    .header-center h1 { font-size: 22px; }
+}
+
+/* Mobile Specific Optimizations */
+@media (max-width: 600px) {
+    .app-header { flex-wrap: wrap; justify-content: space-between; }
+    .header-center { order: -1; width: 100%; margin-bottom: 10px; }
+    .report-inputs-grid { grid-template-columns: 1fr; }
+    .modal-card { height: 100%; max-height: 95vh; border-radius: 12px; padding: 16px; }
+    
+    .table-container table, 
+    .table-container thead, 
+    .table-container tbody, 
+    .table-container th, 
+    .table-container td, 
+    .table-container tr { 
+        display: block; 
+    }
+    
+    .table-container thead tr { 
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .table-container tr { 
+        border: 1px solid #e2e8f0; 
+        border-radius: 10px;
+        margin-bottom: 12px;
+        background: #fff;
+        padding: 8px;
+    }
+    
+    .table-container td { 
+        border: none;
+        border-bottom: 1px solid #f1f5f9; 
+        position: relative;
+        padding-left: 45%; 
+        text-align: right;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    
+    .table-container td:last-child {
+        border-bottom: 0;
+    }
+
+    .table-container td:before { 
+        position: absolute;
+        left: 10px;
+        width: 40%; 
+        padding-right: 10px; 
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    #modalExpenseTableBody td:nth-of-type(1):before { content: "Date"; }
+    #modalExpenseTableBody td:nth-of-type(2):before { content: "Category"; }
+    #modalExpenseTableBody td:nth-of-type(3):before { content: "Description"; }
+    #modalExpenseTableBody td:nth-of-type(4):before { content: "Amount"; }
+    #modalExpenseTableBody td:nth-of-type(5):before { content: "Actions"; }
+
+    #incomeTableBody td:nth-of-type(1):before { content: "Date"; }
+    #incomeTableBody td:nth-of-type(2):before { content: "Source"; }
+    #incomeTableBody td:nth-of-type(3):before { content: "Description"; }
+    #incomeTableBody td:nth-of-type(4):before { content: "Amount"; }
+    #incomeTableBody td:nth-of-type(5):before { content: "Action"; }
+
+    #loanTableBody td:nth-of-type(1):before { content: "Date"; }
+    #loanTableBody td:nth-of-type(2):before { content: "Entity"; }
+    #loanTableBody td:nth-of-type(3):before { content: "Type"; }
+    #loanTableBody td:nth-of-type(4):before { content: "Description"; }
+    #loanTableBody td:nth-of-type(5):before { content: "Original"; }
+    #loanTableBody td:nth-of-type(6):before { content: "Remaining"; }
+    #loanTableBody td:nth-of-type(7):before { content: "Status"; }
+    #loanTableBody td:nth-of-type(8):before { content: "Actions"; }
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SECTION -->
+<div class="auth-wrapper" id="authContainer">
+    <!-- Login Form -->
+    <div class="auth-card" id="loginCard">
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Sign in to track your expenses</p>
+        <div class="alert-msg" id="loginMsg"></div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="loginUsername" class="form-control" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" class="form-control" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn">Sign In</button>
+        </form>
+        <div class="auth-toggle">
+            Don't have an account? <a href="#" onclick="switchAuth('signup')">Sign Up</a>
+        </div>
+    </div>
+
+    <!-- Signup Form -->
+    <div class="auth-card" id="signupCard" style="display: none;">
+        <h2>Create Account</h2>
+        <p class="subtitle">Start managing your money today</p>
+        <div class="alert-msg" id="signupMsg"></div>
+        <form id="signupForm" onsubmit="handleSignup(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="signupName" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="signupAge" class="form-control" min="1" max="120" placeholder="e.g. 25" required>
+            </div>
+            <div class="form-group">
+                <label>Sex</label>
+                <select id="signupSex" class="form-control" required>
+                    <option value="">Select Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="signupUsername" class="form-control" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signupPassword" class="form-control" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="btn">Register</button>
+        </form>
+        <div class="auth-toggle">
+            Already have an account? <a href="#" onclick="switchAuth('login')">Sign In</a>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div class="app-container" id="dashboardContainer" style="display: none;">
+    <header class="app-header">
+        <div class="dropdown-container">
+            <button class="header-btn" onclick="toggleMenuDropdown(event)">
+                <span>☰</span>
+                <span>Menu</span>
+            </button>
+            <div class="dropdown-menu left-align" id="navMenuDropdown">
+                <div class="dropdown-item" onclick="openExpenseModal()">📉 Manage Expenses</div>
+                <div class="dropdown-item" onclick="openIncomeModal()">💵 Manage Income</div>
+                <div class="dropdown-item" onclick="openLoanModal()">🏦 Manage Loans</div>
+                <div class="dropdown-item" onclick="openAboutModal()">ℹ️ About Application</div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <h1>💰 Money Expense Tracker</h1>
+            <p>Personal Finance Dashboard</p>
+        </div>
+
+        <div class="dropdown-container">
+            <button class="header-btn" onclick="toggleUserDropdown(event)">
+                <span>👤</span>
+                <span id="headerUserName">User</span>
+                <span>▼</span>
+            </button>
+            <div class="dropdown-menu right-align" id="userDropdown">
+                <div class="dropdown-item" onclick="openEditProfileModal()">✏️ Edit Profile</div>
+                <div class="dropdown-item" onclick="openChangePasswordModal()">🔑 Change Password</div>
+                <div class="dropdown-item text-danger" onclick="handleLogout()">🚪 Logout</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card income">
+            <h4>Income This Month</h4>
+            <h2 id="currMonthIncome">৳0.00</h2>
+        </div>
+        <div class="summary-card expense">
+            <h4>Expense This Month</h4>
+            <h2 id="currMonthExpense">৳0.00</h2>
+        </div>
+        <div class="summary-card balance">
+            <h4>Balance This Month</h4>
+            <h2 id="currMonthBalance">৳0.00</h2>
+        </div>
+        <div class="summary-card previous">
+            <h4>Previous Expense</h4>
+            <h2 id="prevMonthExpense">৳0.00</h2>
+        </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <div class="analytics-grid">
+        <div class="chart-box">
+            <h3>This Month Breakdown</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="report-box">
+            <h3>Monthly Report Generator</h3>
+            <div class="report-inputs-grid">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="text-align: left;">Report Type</label>
+                    <select id="reportType" class="form-control">
+                        <option value="expense">Expense Report</option>
+                        <option value="income">Income Report</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="text-align: left;">Select Month</label>
+                    <input type="month" id="reportMonth" class="form-control">
+                </div>
+            </div>
+            <div class="report-controls">
+                <button class="btn" onclick="generateMonthlyReport()">Calculate</button>
+                <button class="btn btn-secondary" onclick="exportPDFReport()">Export PDF</button>
+            </div>
+            <h2 id="reportOutput" style="color: var(--primary); margin-top: 10px; font-size: 20px;">৳0.00</h2>
+        </div>
+    </div>
+
+    <footer>
+        Developed by <strong>Ekramul Haque</strong> | © 2026 Money Expense Tracker
+    </footer>
+</div>
+
+<!-- EXPENSE MANAGEMENT MODAL -->
+<div class="modal-overlay" id="expenseModal">
+    <div class="modal-card large">
+        <div class="modal-header">
+            <h3>📉 Manage Expenses</h3>
+            <span class="close-modal" onclick="closeModal('expenseModal')">&times;</span>
+        </div>
+        <div class="modal-summary-bar">
+            <span>Total Expenses Recorded:</span>
+            <span id="modalTotalExpense" style="color: var(--danger);">৳0.00</span>
+        </div>
+        <form id="modalExpenseForm" onsubmit="handleModalExpenseSubmit(event)">
+            <div class="expense-form-grid" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="mExpDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="mExpCategory" class="form-control" required>
+                        <option value="">Select Category</option>
+                        <option>Food</option>
+                        <option>Transport</option>
+                        <option>Shopping</option>
+                        <option>Bills</option>
+                        <option>Entertainment</option>
+                        <option>Healthcare</option>
+                        <option>House Rent</option>
+                        <option>E-commerce</option>
+                        <option>Education</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="mExpDesc" class="form-control" placeholder="What did you buy?" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (৳)</label>
+                    <input type="number" id="mExpAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                </div>
+                <button type="submit" id="mExpSubmitBtn" class="btn">Add Expense Entry</button>
+            </div>
+        </form>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="modalExpenseTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- INCOME MANAGEMENT MODAL -->
+<div class="modal-overlay" id="incomeModal">
+    <div class="modal-card large">
+        <div class="modal-header">
+            <h3>💵 Income Tracker</h3>
+            <span class="close-modal" onclick="closeModal('incomeModal')">&times;</span>
+        </div>
+        <div class="modal-summary-bar">
+            <span>Total Income Recorded:</span>
+            <span id="modalTotalIncome" style="color: var(--success);">৳0.00</span>
+        </div>
+        <form id="incomeForm" onsubmit="handleIncomeSubmit(event)">
+            <div class="expense-form-grid" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="incDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Source</label>
+                    <select id="incSource" class="form-control" required>
+                        <option value="">Select Source</option>
+                        <option>Salary</option>
+                        <option>Business</option>
+                        <option>Freelance</option>
+                        <option>Investment</option>
+                        <option>Gift</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="incDesc" class="form-control" placeholder="e.g. Monthly Paycheck" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (৳)</label>
+                    <input type="number" id="incAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                </div>
+                <button type="submit" class="btn">Record Income</button>
+            </div>
+        </form>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Source</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="incomeTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- LOAN MANAGEMENT MODAL -->
+<div class="modal-overlay" id="loanModal">
+    <div class="modal-card large">
+        <div class="modal-header">
+            <h3>🏦 Loan & Debt Tracker</h3>
+            <span class="close-modal" onclick="closeModal('loanModal')">&times;</span>
+        </div>
+        <div class="modal-summary-bar">
+            <span>Borrowed (Due): <span id="modalTotalBorrowed" style="color: var(--danger);">৳0.00</span></span>
+            <span>Lent (Due): <span id="modalTotalLent" style="color: var(--primary);">৳0.00</span></span>
+        </div>
+        <form id="loanForm" onsubmit="handleLoanSubmit(event)">
+            <div class="expense-form-grid" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="loanDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Person / Bank</label>
+                    <input type="text" id="loanPerson" class="form-control" placeholder="e.g. John / City Bank" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="loanType" class="form-control" required>
+                        <option value="Borrowed">Borrowed (I Owe)</option>
+                        <option value="Lent">Lent (Owed to Me)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="loanDesc" class="form-control" placeholder="e.g. Emergency Cash" required>
+                </div>
+                <div class="form-group">
+                    <label>Total Amount (৳)</label>
+                    <input type="number" id="loanAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                </div>
+                <button type="submit" class="btn">Add Loan Record</button>
+            </div>
+        </form>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Person/Entity</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Original</th>
+                        <th>Remaining</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="loanTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- RECORD LOAN PAYMENT MODAL -->
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>💵 Record Loan Payment</h3>
+            <span class="close-modal" onclick="closeModal('paymentModal')">&times;</span>
+        </div>
+        <div id="paymentModalInfo" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);"></div>
+        <form onsubmit="handlePaymentSubmit(event)">
+            <div class="form-group">
+                <label>Payment Date</label>
+                <input type="date" id="payDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Payment Amount (৳)</label>
+                <input type="number" id="payAmount" class="form-control" placeholder="0.00" step="0.01" required>
+            </div>
+            <button type="submit" class="btn">Submit Repayment</button>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT PROFILE MODAL (UPDATED) -->
+<div class="modal-overlay" id="editProfileModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Edit Profile</h3>
+            <span class="close-modal" onclick="closeModal('editProfileModal')">&times;</span>
+        </div>
+        <form onsubmit="handleProfileUpdate(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="profileFullName" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="profilePhone" class="form-control" placeholder="e.g. +8801700000000">
+            </div>
+            <div class="form-group">
+                <label>Profession</label>
+                <input type="text" id="profileProfession" class="form-control" placeholder="e.g. Software Engineer">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="profileAddress" class="form-control" placeholder="e.g. Dhaka, Bangladesh">
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="profileAge" class="form-control" min="1" max="120" placeholder="e.g. 25" required>
+            </div>
+            <div class="form-group">
+                <label>Sex</label>
+                <select id="profileSex" class="form-control" required>
+                    <option value="">Select Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="changePasswordModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Change Password</h3>
+            <span class="close-modal" onclick="closeModal('changePasswordModal')">&times;</span>
+        </div>
+        <div class="alert-msg" id="passChangeMsg"></div>
+        <form onsubmit="handleChangePassword(event)">
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" id="currPassword" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="newPassword" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" id="confirmPassword" class="form-control" required>
+            </div>
+            <button type="submit" class="btn">Update Password</button>
+        </form>
+    </div>
+</div>
+
+<!-- ABOUT MODAL -->
+<div class="modal-overlay" id="aboutModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>About Application</h3>
+            <span class="close-modal" onclick="closeModal('aboutModal')">&times;</span>
+        </div>
+        <div style="line-height: 1.6; color: var(--text-dark); font-size: 14px;">
+            <p><strong>Money Expense Tracker v2.0</strong></p>
+            <p>A smart, secure personal finance app optimized for mobile devices. Track daily expenses, manage income, monitor loan repayments, and export PDF statements easily.</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+            <p><strong>Key Features:</strong></p>
+            <ul style="padding-left: 20px; margin: 0 0 15px;">
+                <li>Isolated multi-user accounts</li>
+                <li>Expense, Income & Loan modules</li>
+                <li>Partial loan repayment with date logs</li>
+                <li>Interactive category chart analytics</li>
+                <li>Monthly summary & PDF export</li>
+                <li>Responsive mobile layout design</li>
+            </ul>
+            <p style="margin-bottom: 0; text-align: center; color: var(--text-muted); font-size: 12px;">
+                Developed by <strong>Ekramul Haque</strong><br>© 2026 All Rights Reserved.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+// State Management
+let users = JSON.parse(localStorage.getItem("users")) || [
+    { username: "admin", password: "admin", name: "Administrator", age: "30", sex: "Male", phone: "", profession: "Admin", address: "" },
+    { username: "ekram", password: "1234", name: "Ekramul Haque", age: "26", sex: "Male", phone: "+8801700000000", profession: "Developer", address: "Dhaka, Bangladesh" }
+];
+
+let currentUser = localStorage.getItem("currentUser") || null;
+let expenses = [];
+let incomes = [];
+let loans = [];
+let editingIndex = -1;
+let activePayLoanIndex = -1;
+let chartInstance = null;
+
+// Initialize System
+window.onload = function() {
+    localStorage.setItem("users", JSON.stringify(users));
+    if (currentUser) {
+        initDashboard();
+    }
+};
+
+// Authentication Switcher
+function switchAuth(type) {
+    document.getElementById("loginMsg").innerText = "";
+    document.getElementById("signupMsg").innerText = "";
+    if (type === 'signup') {
+        document.getElementById("loginCard").style.display = "none";
+        document.getElementById("signupCard").style.display = "block";
+    } else {
+        document.getElementById("signupCard").style.display = "none";
+        document.getElementById("loginCard").style.display = "block";
+    }
+}
+
+// Authentication Handlers
+function handleLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById("loginUsername").value.trim();
+    const p = document.getElementById("loginPassword").value;
+    
+    const user = users.find(x => x.username === u && x.password === p);
+    if (user) {
+        currentUser = user.username;
+        localStorage.setItem("currentUser", currentUser);
+        initDashboard();
+    } else {
+        document.getElementById("loginMsg").innerText = "Invalid credentials entered.";
+    }
+}
+
+function handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById("signupName").value.trim();
+    const age = document.getElementById("signupAge").value;
+    const sex = document.getElementById("signupSex").value;
+    const username = document.getElementById("signupUsername").value.trim();
+    const password = document.getElementById("signupPassword").value;
+
+    if (users.some(u => u.username === username)) {
+        document.getElementById("signupMsg").innerText = "Username already exists.";
+        return;
+    }
+
+    users.push({ name, age, sex, username, password, phone: "", profession: "", address: "" });
+    localStorage.setItem("users", JSON.stringify(users));
+    
+    currentUser = username;
+    localStorage.setItem("currentUser", currentUser);
+    initDashboard();
+}
+
+function handleLogout() {
+    currentUser = null;
+    localStorage.removeItem("currentUser");
+    document.getElementById("dashboardContainer").style.display = "none";
+    document.getElementById("authContainer").style.display = "flex";
+    closeAllDropdowns();
+}
+
+// Dashboard Initializer
+function initDashboard() {
+    document.getElementById("authContainer").style.display = "none";
+    document.getElementById("dashboardContainer").style.display = "block";
+    
+    const userObj = users.find(u => u.username === currentUser);
+    document.getElementById("headerUserName").innerText = userObj ? userObj.name : currentUser;
+    
+    loadUserData();
+    renderDashboard();
+}
+
+function loadUserData() {
+    expenses = JSON.parse(localStorage.getItem("expenses_" + currentUser)) || [];
+    incomes = JSON.parse(localStorage.getItem("incomes_" + currentUser)) || [];
+    loans = JSON.parse(localStorage.getItem("loans_" + currentUser)) || [];
+}
+
+function saveUserData() {
+    localStorage.setItem("expenses_" + currentUser, JSON.stringify(expenses));
+    localStorage.setItem("incomes_" + currentUser, JSON.stringify(incomes));
+    localStorage.setItem("loans_" + currentUser, JSON.stringify(loans));
+}
+
+// Render Dashboard Data
+function renderDashboard() {
+    calculateMonthlyMetrics();
+    renderChart();
+    renderModalExpenses();
+}
+
+function calculateMonthlyMetrics() {
+    const now = new Date();
+    const cMonth = now.getMonth();
+    const cYear = now.getFullYear();
+    
+    let pMonth = cMonth - 1;
+    let pYear = cYear;
+    if (pMonth < 0) { pMonth = 11; pYear--; }
+
+    let currExpTotal = 0;
+    let prevExpTotal = 0;
+    let currIncTotal = 0;
+
+    expenses.forEach(exp => {
+        const d = new Date(exp.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            currExpTotal += exp.amount;
+        }
+        if (d.getMonth() === pMonth && d.getFullYear() === pYear) {
+            prevExpTotal += exp.amount;
+        }
+    });
+
+    incomes.forEach(inc => {
+        const d = new Date(inc.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            currIncTotal += inc.amount;
+        }
+    });
+
+    const netBalance = currIncTotal - currExpTotal;
+
+    document.getElementById("currMonthIncome").innerText = `৳${currIncTotal.toFixed(2)}`;
+    document.getElementById("currMonthExpense").innerText = `৳${currExpTotal.toFixed(2)}`;
+    document.getElementById("currMonthBalance").innerText = `৳${netBalance.toFixed(2)}`;
+    document.getElementById("prevMonthExpense").innerText = `৳${prevExpTotal.toFixed(2)}`;
+}
+
+// Expense Actions
+function startEdit(index) {
+    editingIndex = index;
+    const item = expenses[index];
+    document.getElementById("mExpDate").value = item.date;
+    document.getElementById("mExpCategory").value = item.category;
+    document.getElementById("mExpDesc").value = item.description;
+    document.getElementById("mExpAmount").value = item.amount;
+    
+    document.getElementById("mExpSubmitBtn").innerText = "Update Expense Entry";
+    openExpenseModal();
+}
+
+function deleteExpense(index) {
+    if (confirm("Delete this expense item?")) {
+        expenses.splice(index, 1);
+        saveUserData();
+        renderDashboard();
+    }
+}
+
+// Expense Modal Functions
+function openExpenseModal() {
+    closeAllDropdowns();
+    renderModalExpenses();
+    document.getElementById("expenseModal").style.display = "flex";
+}
+
+function handleModalExpenseSubmit(e) {
+    e.preventDefault();
+    const expData = {
+        date: document.getElementById("mExpDate").value,
+        category: document.getElementById("mExpCategory").value,
+        description: document.getElementById("mExpDesc").value,
+        amount: parseFloat(document.getElementById("mExpAmount").value)
+    };
+
+    if (editingIndex === -1) {
+        expenses.push(expData);
+    } else {
+        expenses[editingIndex] = expData;
+        editingIndex = -1;
+        document.getElementById("mExpSubmitBtn").innerText = "Add Expense Entry";
+    }
+
+    saveUserData();
+    renderDashboard();
+    document.getElementById("modalExpenseForm").reset();
+}
+
+function renderModalExpenses() {
+    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById("modalExpenseTableBody");
+    if(!tbody) return;
+    tbody.innerHTML = "";
+    
+    let totalExp = 0;
+    expenses.forEach((item, index) => {
+        totalExp += item.amount;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.category}</td>
+            <td>${item.description}</td>
+            <td>৳${item.amount.toFixed(2)}</td>
+            <td class="table-actions">
+                <button class="btn-action btn-edit" onclick="startEdit(${index})">Edit</button>
+                <button class="btn-action btn-delete" onclick="deleteExpense(${index})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("modalTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
+}
+
+// Income Functions
+function openIncomeModal() {
+    closeAllDropdowns();
+    renderIncomes();
+    document.getElementById("incomeModal").style.display = "flex";
+}
+
+function handleIncomeSubmit(e) {
+    e.preventDefault();
+    const incData = {
+        date: document.getElementById("incDate").value,
+        source: document.getElementById("incSource").value,
+        description: document.getElementById("incDesc").value,
+        amount: parseFloat(document.getElementById("incAmount").value)
+    };
+
+    incomes.push(incData);
+    saveUserData();
+    renderIncomes();
+    renderDashboard();
+    document.getElementById("incomeForm").reset();
+}
+
+function renderIncomes() {
+    incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById("incomeTableBody");
+    tbody.innerHTML = "";
+    
+    let totalIncome = 0;
+    incomes.forEach((item, index) => {
+        totalIncome += item.amount;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.source}</td>
+            <td>${item.description}</td>
+            <td>৳${item.amount.toFixed(2)}</td>
+            <td><button class="btn-action btn-delete" onclick="deleteIncome(${index})">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("modalTotalIncome").innerText = `৳${totalIncome.toFixed(2)}`;
+}
+
+function deleteIncome(index) {
+    if (confirm("Delete this income entry?")) {
+        incomes.splice(index, 1);
+        saveUserData();
+        renderIncomes();
+        renderDashboard();
+    }
+}
+
+// Loan Functions
+function openLoanModal() {
+    closeAllDropdowns();
+    renderLoans();
+    document.getElementById("loanModal").style.display = "flex";
+}
+
+function handleLoanSubmit(e) {
+    e.preventDefault();
+    const loanData = {
+        date: document.getElementById("loanDate").value,
+        person: document.getElementById("loanPerson").value,
+        type: document.getElementById("loanType").value,
+        description: document.getElementById("loanDesc").value,
+        amount: parseFloat(document.getElementById("loanAmount").value),
+        payments: []
+    };
+
+    loans.push(loanData);
+    saveUserData();
+    renderLoans();
+    document.getElementById("loanForm").reset();
+}
+
+function getLoanSummary(item) {
+    const totalPaid = (item.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const remaining = Math.max(0, item.amount - totalPaid);
+    let status = "Pending";
+    if (remaining <= 0) {
+        status = "Repaid";
+    } else if (totalPaid > 0) {
+        status = "Partially Paid";
+    }
+    return { totalPaid, remaining, status };
+}
+
+function renderLoans() {
+    loans.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById("loanTableBody");
+    tbody.innerHTML = "";
+
+    let totalBorrowedRemaining = 0;
+    let totalLentRemaining = 0;
+
+    loans.forEach((item, index) => {
+        const { totalPaid, remaining, status } = getLoanSummary(item);
+
+        if (item.type === "Borrowed") totalBorrowedRemaining += remaining;
+        if (item.type === "Lent") totalLentRemaining += remaining;
+
+        const typeBadge = item.type === "Borrowed" 
+            ? `<span class="badge badge-borrowed">Borrowed</span>` 
+            : `<span class="badge badge-lent">Lent</span>`;
+
+        let statusBadge = `<span class="badge badge-pending">Pending</span>`;
+        if (status === "Partially Paid") {
+            statusBadge = `<span class="badge badge-partial">Partially Paid</span>`;
+        } else if (status === "Repaid") {
+            statusBadge = `<span class="badge badge-repaid">Repaid</span>`;
+        }
+
+        const historyHtml = (item.payments || []).length > 0 
+            ? `<div class="history-box" id="history-${index}" style="display:none;">
+                <strong>Payment History:</strong>
+                ${item.payments.map(p => `
+                    <div class="history-item">
+                        <span>📅 ${p.date}</span>
+                        <span><strong>৳${p.amount.toFixed(2)}</strong></span>
+                    </div>
+                `).join('')}
+               </div>`
+            : `<div class="history-box" id="history-${index}" style="display:none;"><em>No payments recorded yet.</em></div>`;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.person}</td>
+            <td>${typeBadge}</td>
+            <td>${item.description}</td>
+            <td>৳${item.amount.toFixed(2)}</td>
+            <td style="font-weight: 600; color: ${remaining > 0 ? 'var(--danger)' : 'var(--success)'};">৳${remaining.toFixed(2)}</td>
+            <td>${statusBadge}</td>
+            <td class="table-actions">
+                ${remaining > 0 ? `<button class="btn-action btn-pay" onclick="openPaymentModal(${index})">Pay</button>` : ''}
+                <button class="btn-action btn-history" onclick="toggleHistory(${index})">History</button>
+                <button class="btn-action btn-delete" onclick="deleteLoan(${index})">Delete</button>
+            </td>
+        `;
+        
+        const wrapperRow = document.createElement("tr");
+        const wrapperCell = document.createElement("td");
+        wrapperCell.colSpan = 8;
+        wrapperCell.style.padding = "0 10px 10px";
+        wrapperCell.innerHTML = historyHtml;
+        wrapperRow.appendChild(wrapperCell);
+
+        tbody.appendChild(row);
+        tbody.appendChild(wrapperRow);
+    });
+
+    document.getElementById("modalTotalBorrowed").innerText = `৳${totalBorrowedRemaining.toFixed(2)}`;
+    document.getElementById("modalTotalLent").innerText = `৳${totalLentRemaining.toFixed(2)}`;
+}
+
+function toggleHistory(index) {
+    const el = document.getElementById(`history-${index}`);
+    if (el) {
+        el.style.display = el.style.display === "none" ? "block" : "none";
+    }
+}
+
+function openPaymentModal(index) {
+    activePayLoanIndex = index;
+    const item = loans[index];
+    const { remaining } = getLoanSummary(item);
+    
+    document.getElementById("paymentModalInfo").innerHTML = `
+        <strong>Target:</strong> ${item.person} (${item.type})<br>
+        <strong>Remaining Due:</strong> ৳${remaining.toFixed(2)}
+    `;
+    document.getElementById("payDate").value = new Date().toISOString().split('T')[0];
+    document.getElementById("payAmount").value = "";
+    document.getElementById("payAmount").max = remaining;
+    
+    document.getElementById("paymentModal").style.display = "flex";
+}
+
+function handlePaymentSubmit(e) {
+    e.preventDefault();
+    if (activePayLoanIndex === -1) return;
+
+    const payDate = document.getElementById("payDate").value;
+    const payAmount = parseFloat(document.getElementById("payAmount").value);
+    
+    const item = loans[activePayLoanIndex];
+    const { remaining } = getLoanSummary(item);
+
+    if (payAmount <= 0) {
+        alert("Please enter a valid payment amount.");
+        return;
+    }
+    
+    if (payAmount > remaining) {
+        alert(`Payment amount cannot exceed remaining balance (৳${remaining.toFixed(2)}).`);
+        return;
+    }
+
+    if (!item.payments) item.payments = [];
+    item.payments.push({ date: payDate, amount: payAmount });
+
+    saveUserData();
+    renderLoans();
+    closeModal('paymentModal');
+}
+
+function deleteLoan(index) {
+    if (confirm("Delete this loan record?")) {
+        loans.splice(index, 1);
+        saveUserData();
+        renderLoans();
+    }
+}
+
+// Chart Engine
+function renderChart() {
+    const now = new Date();
+    const cMonth = now.getMonth();
+    const cYear = now.getFullYear();
+    
+    const catTotals = {};
+
+    expenses.forEach(exp => {
+        const d = new Date(exp.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            catTotals[exp.category] = (catTotals[exp.category] || 0) + exp.amount;
+        }
+    });
+
+    const ctx = document.getElementById("categoryChart").getContext("2d");
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+        type: 'pie',
+        plugins: [ChartDataLabels],
+        data: {
+            labels: Object.keys(catTotals),
+            datasets: [{
+                data: Object.values(catTotals),
+                backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                datalabels: {
+                    color: '#fff',
+                    formatter: (val, ctx) => {
+                        let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        return ((val / total) * 100).toFixed(1) + "%";
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Helper: Format YYYY-MM to Month Name Year
+function formatMonthYear(monthString) {
+    const [year, month] = monthString.split('-');
+    const date = new Date(year, parseInt(month) - 1, 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+// Report Functions
+function generateMonthlyReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    if (!selected) return alert("Select a target month first.");
+
+    const dataset = reportType === 'expense' ? expenses : incomes;
+    const total = dataset
+        .filter(item => item.date.startsWith(selected))
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const formattedMonth = formatMonthYear(selected);
+    const typeLabel = reportType === 'expense' ? 'Expense' : 'Income';
+    document.getElementById("reportOutput").innerText = `${formattedMonth} ${typeLabel}: ৳${total.toFixed(2)}`;
+}
+
+function exportPDFReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    if (!selected) return alert("Select a month to export.");
+
+    const formattedMonth = formatMonthYear(selected);
+    const isExpense = reportType === 'expense';
+    const dataset = isExpense ? expenses : incomes;
+    const filtered = dataset.filter(item => item.date.startsWith(selected));
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const userObj = users.find(u => u.username === currentUser) || { name: currentUser };
+
+    // Title Section
+    const titleText = isExpense ? "Monthly Expense Statement" : "Monthly Income Statement";
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(37, 99, 235);
+    doc.text(titleText, 14, 22);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Report Period: ${formattedMonth}`, 14, 29);
+    doc.text(`Generated For: ${userObj.name}`, 14, 34);
+
+    // Table Header
+    let y = 45;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y - 5, 182, 8, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    
+    doc.text("Date", 16, y);
+    doc.text(isExpense ? "Category" : "Source", 52, y);
+    doc.text("Description", 100, y);
+    doc.text("Amount (BDT)", 165, y);
+
+    y += 4;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    // Table Content
+    let subtotal = 0;
+    doc.setFont("helvetica", "normal");
+    
+    if (filtered.length === 0) {
+        y += 10;
+        doc.setTextColor(100, 116, 139);
+        doc.text("No records found for this selected period.", 14, y);
+    } else {
+        filtered.forEach(item => {
+            y += 8;
+            
+            if (y > 265) {
+                doc.addPage();
+                y = 20;
+            }
+
+            doc.setTextColor(30, 41, 59);
+            doc.text(item.date, 16, y);
+            doc.text(isExpense ? item.category : item.source, 52, y);
+            doc.text((item.description || '').substring(0, 25), 100, y);
+            
+            const amtText = `Tk ${item.amount.toFixed(2)}`;
+            doc.text(amtText, 195 - doc.getTextWidth(amtText), y);
+            
+            subtotal += item.amount;
+        });
+    }
+
+    y += 6;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    // Total Summary Box
+    y += 10;
+    if (y > 265) {
+        doc.addPage();
+        y = 20;
+    }
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Total ${isExpense ? 'Expenses' : 'Income'}:`, 120, y);
+    
+    const finalTotalText = `Tk ${subtotal.toFixed(2)}`;
+    doc.setTextColor(isExpense ? 220 : 16, isExpense ? 38 : 185, isExpense ? 38 : 129);
+    doc.text(finalTotalText, 195 - doc.getTextWidth(finalTotalText), y);
+
+    // PDF Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 280, 196, 280);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        
+        doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
+    }
+
+    doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selected}.pdf`);
+}
+
+// Dropdown & Modal Controls
+function toggleMenuDropdown(e) {
+    e.stopPropagation();
+    document.getElementById("userDropdown").classList.remove("show");
+    document.getElementById("navMenuDropdown").classList.toggle("show");
+}
+
+function toggleUserDropdown(e) {
+    e.stopPropagation();
+    document.getElementById("navMenuDropdown").classList.remove("show");
+    document.getElementById("userDropdown").classList.toggle("show");
+}
+
+function closeAllDropdowns() {
+    document.getElementById("navMenuDropdown").classList.remove("show");
+    document.getElementById("userDropdown").classList.remove("show");
+}
+
+/* UPDATED PROFILE MODAL CONTROLS */
+function openEditProfileModal() {
+    closeAllDropdowns();
+    const user = users.find(u => u.username === currentUser);
+    if (user) {
+        document.getElementById("profileFullName").value = user.name || "";
+        document.getElementById("profilePhone").value = user.phone || "";
+        document.getElementById("profileProfession").value = user.profession || "";
+        document.getElementById("profileAddress").value = user.address || "";
+        document.getElementById("profileAge").value = user.age || "";
+        document.getElementById("profileSex").value = user.sex || "";
+    }
+    document.getElementById("editProfileModal").style.display = "flex";
+}
+
+function handleProfileUpdate(e) {
+    e.preventDefault();
+    const newName = document.getElementById("profileFullName").value.trim();
+    const newPhone = document.getElementById("profilePhone").value.trim();
+    const newProfession = document.getElementById("profileProfession").value.trim();
+    const newAddress = document.getElementById("profileAddress").value.trim();
+    const newAge = document.getElementById("profileAge").value;
+    const newSex = document.getElementById("profileSex").value;
+
+    const user = users.find(u => u.username === currentUser);
+    if (user) {
+        user.name = newName;
+        user.phone = newPhone;
+        user.profession = newProfession;
+        user.address = newAddress;
+        user.age = newAge;
+        user.sex = newSex;
+        
+        localStorage.setItem("users", JSON.stringify(users));
+        document.getElementById("headerUserName").innerText = newName;
+        closeModal("editProfileModal");
+    }
+}
+
+function openChangePasswordModal() {
+    closeAllDropdowns();
+    document.getElementById("passChangeMsg").innerText = "";
+    document.getElementById("currPassword").value = "";
+    document.getElementById("newPassword").value = "";
+    document.getElementById("confirmPassword").value = "";
+    document.getElementById("changePasswordModal").style.display = "flex";
+}
+
+function openAboutModal() {
+    closeAllDropdowns();
+    document.getElementById("aboutModal").style.display = "flex";
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = "none";
+    if(modalId === 'expenseModal') {
+        document.getElementById("modalExpenseForm").reset();
+        editingIndex = -1;
+        document.getElementById("mExpSubmitBtn").innerText = "Add Expense Entry";
+    }
+    if(modalId === 'paymentModal') {
+        activePayLoanIndex = -1;
+    }
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    const curr = document.getElementById("currPassword").value;
+    const next = document.getElementById("newPassword").value;
+    const confirm = document.getElementById("confirmPassword").value;
+    const msgEl = document.getElementById("passChangeMsg");
+
+    const user = users.find(u => u.username === currentUser);
+
+    if (user.password !== curr) {
+        msgEl.innerText = "Current password is incorrect.";
+        return;
+    }
+    if (next !== confirm) {
+        msgEl.innerText = "New passwords do not match.";
+        return;
+    }
+
+    user.password = next;
+    localStorage.setItem("users", JSON.stringify(users));
+    closeModal("changePasswordModal");
+    alert("Password updated successfully.");
+}
+
+// Global Click Handler to Dismiss Dropdowns
+window.onclick = function(e) {
+    if (!e.target.closest('.dropdown-container')) {
+        closeAllDropdowns();
+    }
+};
+</script>
+</body>
+</html>
