@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Expense Tracker</title>
+
+<!-- External Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+<style>
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg-main: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-dark);
+    margin: 0;
+    padding: 0;
+}
+
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-control {
+    width: 100%;
+    height: 48px;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 16px;
+    background-color: #f8fafc;
+    color: var(--text-dark);
+    -webkit-appearance: none;
+    appearance: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+select.form-control {
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748B%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px top 50%;
+    background-size: 10px auto;
+    padding-right: 36px;
+}
+
+.expense-form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.expense-form-grid button { 
+    grid-column: 1 / -1; 
+    margin-top: 4px;
+}
+
+@media (min-width: 640px) {
+    .expense-form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.btn {
+    width: 100%;
+    height: 48px;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.btn:active {
+    transform: scale(0.98);
+    background: var(--primary-hover);
+}
+
+.btn-secondary { background: #64748b; box-shadow: none; }
+.btn-secondary:active { background: #475569; }
+
+/* AUTH SECTION */
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+}
+
+.auth-card {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.auth-card h2 {
+    margin-top: 0;
+    color: var(--primary);
+    text-align: center;
+    font-size: 24px;
+}
+
+.auth-card p.subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.auth-toggle {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.auth-toggle a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.alert-msg {
+    color: var(--danger);
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 15px;
+    min-height: 18px;
+}
+
+/* MAIN LAYOUT */
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 24px;
+}
+
+.top-gradient-header {
+    background: linear-gradient(90deg, #42d392 0%, #35b0ab 30%, #2974b8 70%, #1e3a8a 100%);
+    border-radius: 20px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.header-menu-container {
+    position: relative;
+}
+
+.header-menu-btn {
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    border-radius: 24px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+    transition: background 0.2s ease;
+}
+
+.header-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+.nav-menu-dropdown {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 12px);
+    background: #0f172a;
+    color: white;
+    border-radius: 16px;
+    width: 250px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 12px 0;
+    display: none;
+    z-index: 500;
+    border: 1px solid #334155;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.nav-menu-dropdown.show {
+    display: block;
+}
+
+.nav-menu-header {
+    padding: 12px 20px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    margin-top: -12px;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    margin-bottom: 8px;
+}
+
+.nav-menu-header h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-menu-header p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.nav-menu-item {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.nav-menu-item:hover, .nav-menu-item.active {
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.header-title-container {
+    text-align: center;
+}
+
+.header-title-container h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #ffffff;
+}
+
+.header-title-container p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: 400;
+    color: #e2e8f0;
+}
+
+.header-user-dropdown {
+    position: relative;
+}
+
+.header-user-btn {
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    border-radius: 24px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+    transition: background 0.2s ease;
+}
+
+.header-user-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    background: #ffffff;
+    color: var(--text-dark);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    min-width: 160px;
+    display: none;
+    z-index: 500;
+    border: 1px solid #e2e8f0;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+    background: #f1f5f9;
+}
+
+.dropdown-item.danger {
+    color: var(--danger);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* PAGE VIEWS */
+.page-view {
+    display: none;
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+
+.page-view.active {
+    display: block;
+}
+
+.page-header {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: var(--primary);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.summary-card.income::before { background: var(--success); }
+.summary-card.expense::before { background: var(--danger); }
+.summary-card.balance::before { background: var(--primary); }
+.summary-card.previous::before { background: #64748b; }
+
+.card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.summary-card.income .card-icon { background: #ecfdf5; color: #10b981; }
+.summary-card.expense .card-icon { background: #fef2f2; color: #ef4444; }
+.summary-card.balance .card-icon { background: #eff6ff; color: #2563eb; }
+.summary-card.previous .card-icon { background: #f8fafc; color: #64748b; }
+
+.summary-card h4 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.summary-card h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-dark);
+}
+
+.summary-card.income h2 { color: #059669; }
+.summary-card.expense h2 { color: #dc2626; }
+.summary-card.balance h2 { color: #2563eb; }
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.chart-box, .report-box {
+    background: white;
+    padding: 16px;
+    border-radius: 18px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+
+.chart-box h3, .report-box h3 { margin-top: 0; font-size: 16px; }
+
+.chart-box canvas {
+    max-width: 100% !important;
+    max-height: 230px !important;
+    margin: 0 auto;
+}
+
+.report-inputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.report-controls {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0 10px;
+}
+
+.table-container { 
+    overflow-x: auto; 
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 13px;
+}
+
+th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+
+.table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.btn-action {
+    padding: 6px 10px;
+    min-height: 32px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit { background: #e0e7ff; color: #4338ca; }
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-pay { background: #d1fae5; color: #047857; }
+.btn-history { background: #f3e8ff; color: #6b21a8; }
+.btn-bal { background: #e0f2fe; color: #0369a1; cursor: default; }
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.badge-pending { background: #fef3c7; color: #b45309; }
+.badge-partial { background: #e0f2fe; color: #0369a1; }
+.badge-repaid { background: #d1fae5; color: #047857; }
+.badge-borrowed { background: #fee2e2; color: #b91c1c; }
+.badge-lent { background: #e0e7ff; color: #4338ca; }
+
+.history-box {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 12px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 600;
+    padding: 16px;
+}
+
+.modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 450px;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+.close-modal { cursor: pointer; font-size: 26px; color: var(--text-muted); line-height: 1; }
+
+.page-summary-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+footer {
+    text-align: center;
+    padding: 24px 16px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+@media (max-width: 768px) {
+    .main-content { padding: 12px; }
+    .top-gradient-header { padding: 12px 16px; }
+    .header-title-container h1 { font-size: 16px; }
+    .header-title-container p { font-size: 10px; }
+    .header-menu-btn, .header-user-btn { padding: 6px 12px; font-size: 12px; }
+}
+
+@media (min-width: 769px) {
+    .analytics-grid { grid-template-columns: 1fr 1fr; }
+    .summary-grid { grid-template-columns: repeat(4, 1fr); }
+    .summary-card h2 { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SECTION -->
+<div class="auth-wrapper" id="authContainer">
+    <div class="auth-card" id="loginCard">
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Sign in to track your expenses</p>
+        <div class="alert-msg" id="loginMsg"></div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="loginUsername" class="form-control" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" class="form-control" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn">Sign In</button>
+        </form>
+        <div class="auth-toggle">
+            Don't have an account? <a href="#" onclick="switchAuth('signup')">Sign Up</a>
+        </div>
+    </div>
+
+    <div class="auth-card" id="signupCard" style="display: none;">
+        <h2>Create Account</h2>
+        <p class="subtitle">Start managing your money today</p>
+        <div class="alert-msg" id="signupMsg"></div>
+        <form id="signupForm" onsubmit="handleSignup(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="signupName" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="signupAge" class="form-control" min="1" max="120" placeholder="e.g. 25" required>
+            </div>
+            <div class="form-group">
+                <label>Sex</label>
+                <select id="signupSex" class="form-control" required>
+                    <option value="">Select Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="signupUsername" class="form-control" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signupPassword" class="form-control" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="btn">Register</button>
+        </form>
+        <div class="auth-toggle">
+            Already have an account? <a href="#" onclick="switchAuth('login')">Sign In</a>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div id="dashboardContainer" style="display: none;">
+    <main class="main-content">
+        
+        <header class="top-gradient-header">
+            <div class="header-menu-container">
+                <button class="header-menu-btn" onclick="toggleNavMenu(event)">
+                    <span>☰</span> Menu
+                </button>
+                <div class="nav-menu-dropdown" id="navMenuDropdown">
+                    <div class="nav-menu-header">
+                        <h3>💳 Navigation Menu</h3>
+                        <p>Finance Dashboard</p>
+                    </div>
+                    <div class="nav-menu-item active" onclick="switchViewFromNav('dashboardView', this)">📊 Dashboard</div>
+                    <div class="nav-menu-item" onclick="switchViewFromNav('expensesView', this)">📉 Manage Expenses</div>
+                    <div class="nav-menu-item" onclick="switchViewFromNav('incomeView', this)">💵 Manage Income</div>
+                    <div class="nav-menu-item" onclick="switchViewFromNav('loansView', this)">🏦 Manage Loans</div>
+                    <div class="nav-menu-item" onclick="switchViewFromNav('profileView', this)">✏️ Edit Profile</div>
+                    <div class="nav-menu-item" onclick="switchViewFromNav('aboutView', this)">ℹ️ About Application</div>
+                </div>
+            </div>
+            
+            <div class="header-title-container">
+                <h1>💳 Money Expense Tracker</h1>
+                <p>Personal Finance Dashboard</p>
+            </div>
+
+            <div class="header-user-dropdown">
+                <button class="header-user-btn" onclick="toggleUserDropdown(event)">
+                    <span>👤</span> <span id="topHeaderUsername">admin</span> <span>▼</span>
+                </button>
+                <div class="dropdown-menu" id="userDropdownMenu">
+                    <div class="dropdown-item" onclick="switchViewFromHeader('profileView')">✏️ Edit Profile</div>
+                    <div class="dropdown-item danger" onclick="handleLogout()">🚪 Logout</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section class="page-view active" id="dashboardView">
+            <h2 class="page-header">Dashboard Overview</h2>
+            
+            <div class="summary-grid">
+                <div class="summary-card income">
+                    <div class="card-top">
+                        <h4>Income This Month</h4>
+                        <div class="card-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        </div>
+                    </div>
+                    <h2 id="currMonthIncome">৳0.00</h2>
+                </div>
+
+                <div class="summary-card expense">
+                    <div class="card-top">
+                        <h4>Expense This Month</h4>
+                        <div class="card-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                        </div>
+                    </div>
+                    <h2 id="currMonthExpense">৳0.00</h2>
+                </div>
+
+                <div class="summary-card balance">
+                    <div class="card-top">
+                        <h4>Balance This Month</h4>
+                        <div class="card-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                    </div>
+                    <h2 id="currMonthBalance">৳0.00</h2>
+                </div>
+
+                <div class="summary-card previous">
+                    <div class="card-top">
+                        <h4>Previous Expense</h4>
+                        <div class="card-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <h2 id="prevMonthExpense">৳0.00</h2>
+                </div>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="chart-box">
+                    <h3>This Month Breakdown</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="report-box">
+                    <h3>Monthly Report Generator</h3>
+                    <div class="report-inputs-grid">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="text-align: left;">Report Type</label>
+                            <select id="reportType" class="form-control">
+                                <option value="expense">Expense Report</option>
+                                <option value="income">Income Report</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="text-align: left;">Select Month</label>
+                            <input type="month" id="reportMonth" class="form-control">
+                        </div>
+                    </div>
+                    <div class="report-controls">
+                        <button class="btn" onclick="generateMonthlyReport()">Calculate</button>
+                        <button class="btn btn-secondary" onclick="exportPDFReport()">Export PDF</button>
+                    </div>
+                    <h2 id="reportOutput" style="color: var(--primary); margin-top: 10px; font-size: 20px;">৳0.00</h2>
+                </div>
+            </div>
+        </section>
+
+        <!-- EXPENSES VIEW -->
+        <section class="page-view" id="expensesView">
+            <h2 class="page-header">📉 Manage Expenses</h2>
+            <div class="page-summary-bar">
+                <span>Total Expenses Recorded:</span>
+                <span id="pageTotalExpense" style="color: var(--danger);">৳0.00</span>
+            </div>
+            <form id="modalExpenseForm" onsubmit="handleExpenseSubmit(event)">
+                <div class="expense-form-grid" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="mExpDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="mExpCategory" class="form-control" required>
+                            <option value="">Select Category</option>
+                            <option>Food</option>
+                            <option>Transport</option>
+                            <option>Shopping</option>
+                            <option>Bills</option>
+                            <option>Entertainment</option>
+                            <option>Healthcare</option>
+                            <option>House Rent</option>
+                            <option>E-commerce</option>
+                            <option>Education</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="mExpDesc" class="form-control" placeholder="What did you buy?" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (৳)</label>
+                        <input type="number" id="mExpAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" id="mExpSubmitBtn" class="btn">Add Expense Entry</button>
+                </div>
+            </form>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalExpenseTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- INCOME VIEW -->
+        <section class="page-view" id="incomeView">
+            <h2 class="page-header">💵 Income Tracker</h2>
+            <div class="page-summary-bar">
+                <span>Total Income Recorded:</span>
+                <span id="pageTotalIncome" style="color: var(--success);">৳0.00</span>
+            </div>
+            <form id="incomeForm" onsubmit="handleIncomeSubmit(event)">
+                <div class="expense-form-grid" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="incDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Source</label>
+                        <select id="incSource" class="form-control" required>
+                            <option value="">Select Source</option>
+                            <option>Salary</option>
+                            <option>Business</option>
+                            <option>Freelance</option>
+                            <option>Investment</option>
+                            <option>Gift</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="incDesc" class="form-control" placeholder="e.g. Monthly Paycheck" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (৳)</label>
+                        <input type="number" id="incAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" id="incSubmitBtn" class="btn">Record Income</button>
+                </div>
+            </form>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incomeTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- LOANS VIEW -->
+        <section class="page-view" id="loansView">
+            <h2 class="page-header">🏦 Loan & Debt Tracker</h2>
+
+            <!-- LOAN & DEBT REPORT GENERATOR SECTION -->
+            <div class="report-box" style="margin-bottom: 24px;">
+                <h3>📑 Loan & Debt Report Generator</h3>
+                <div class="report-inputs-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="text-align: left;">Filter Type</label>
+                        <select id="loanReportType" class="form-control">
+                            <option value="All">All Types (Borrowed & Lent)</option>
+                            <option value="Borrowed">Borrowed Only</option>
+                            <option value="Lent">Lent Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="text-align: left;">Filter Person / Bank</label>
+                        <select id="loanReportPerson" class="form-control">
+                            <option value="All">All Entities</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="text-align: left;">Month (Optional)</label>
+                        <input type="month" id="loanReportMonth" class="form-control">
+                    </div>
+                </div>
+                <div class="report-controls">
+                    <button class="btn" onclick="generateLoanReport()">Calculate Loan Statement</button>
+                    <button class="btn btn-secondary" onclick="exportLoanPDFReport()">Export Loan PDF</button>
+                </div>
+                <div id="loanReportOutput" style="margin-top: 12px; font-weight: 700; font-size: 15px; color: var(--primary);">
+                    Select options and click Calculate
+                </div>
+            </div>
+
+            <div class="page-summary-bar">
+                <span>Total Borrowed Due: <span id="pageTotalBorrowed" style="color: var(--danger);">৳0.00</span></span>
+                <span>Total Lent Due: <span id="pageTotalLent" style="color: var(--primary);">৳0.00</span></span>
+            </div>
+
+            <form id="loanForm" onsubmit="handleLoanSubmit(event)">
+                <div class="expense-form-grid" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="loanDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Person / Bank</label>
+                        <input type="text" id="loanPerson" class="form-control" placeholder="e.g. Rahim / City Bank" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="loanType" class="form-control" required>
+                            <option value="Borrowed">Borrowed (I Owe)</option>
+                            <option value="Lent">Lent (Owed to Me)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="loanDesc" class="form-control" placeholder="e.g. Emergency Cash" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Amount (৳)</label>
+                        <input type="number" id="loanAmount" class="form-control" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn">Add Loan Record</button>
+                </div>
+            </form>
+
+            <!-- SERIALLY GROUPED PERSON CARDS (SEPARATED BY TYPE) -->
+            <div id="loanTableBody"></div>
+        </section>
+
+        <!-- PROFILE VIEW -->
+        <section class="page-view" id="profileView">
+            <h2 class="page-header">✏️ Edit Profile</h2>
+            <form onsubmit="handleProfileUpdate(event)">
+                <div class="expense-form-grid">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="profileFullName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number</label>
+                        <input type="tel" id="profilePhone" class="form-control" placeholder="e.g. +8801700000000">
+                    </div>
+                    <div class="form-group">
+                        <label>Profession</label>
+                        <input type="text" id="profileProfession" class="form-control" placeholder="e.g. Software Engineer">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="profileAddress" class="form-control" placeholder="e.g. Dhaka, Bangladesh">
+                    </div>
+                    <div class="form-group">
+                        <label>Age</label>
+                        <input type="number" id="profileAge" class="form-control" min="1" max="120" placeholder="e.g. 25" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Sex</label>
+                        <select id="profileSex" class="form-control" required>
+                            <option value="">Select Sex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Save Changes</button>
+                </div>
+            </form>
+
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px;">
+            <h3>Security</h3>
+            <div class="alert-msg" id="passChangeMsg"></div>
+            <form onsubmit="handleChangePassword(event)">
+                <div class="expense-form-grid">
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" id="currPassword" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn">Update Password</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ABOUT VIEW -->
+        <section class="page-view" id="aboutView">
+            <h2 class="page-header">ℹ️ About Application</h2>
+            <div style="line-height: 1.6; color: var(--text-dark); font-size: 14px;">
+                <p><strong>Money Expense Tracker v2.0</strong></p>
+                <p>A smart, secure personal finance application featuring unified person loan tracking, embedded menu navigation, and exportable financial summary statements.</p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                <p><strong>Key Features:</strong></p>
+                <ul style="padding-left: 20px; margin: 0 0 15px;">
+                    <li>Isolated multi-user accounts</li>
+                    <li>Separated Borrowed & Lent controls per person</li>
+                    <li>Expense, Income & Debt modules</li>
+                    <li>Partial loan repayments with full audit history</li>
+                    <li>Interactive category chart analytics</li>
+                    <li>Monthly summary & PDF export</li>
+                </ul>
+                <p style="margin-bottom: 0; color: var(--text-muted); font-size: 12px;">
+                    Developed by <strong>Ekramul Haque</strong><br>© 2026 All Rights Reserved.
+                </p>
+            </div>
+        </section>
+
+        <footer>
+            Developed by <strong>Ekramul Haque</strong> | © 2026 Money Expense Tracker
+        </footer>
+    </main>
+</div>
+
+<!-- SINGLE RECORD LOAN PAYMENT MODAL -->
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>💵 Record Loan Payment</h3>
+            <span class="close-modal" onclick="closeModal('paymentModal')">&times;</span>
+        </div>
+        <div id="paymentModalInfo" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);"></div>
+        <form onsubmit="handlePaymentSubmit(event)">
+            <div class="form-group">
+                <label>Payment Date</label>
+                <input type="date" id="payDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Payment Amount (৳)</label>
+                <input type="number" id="payAmount" class="form-control" placeholder="0.00" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="payDesc" class="form-control" placeholder="e.g. Partial repayment via Bkash">
+            </div>
+            <button type="submit" class="btn">Submit Repayment</button>
+        </form>
+    </div>
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || [
+    { username: "admin", password: "admin", name: "Administrator", age: "30", sex: "Male", phone: "", profession: "Admin", address: "" },
+    { username: "ekram", password: "1234", name: "Ekramul Haque", age: "26", sex: "Male", phone: "+8801700000000", profession: "Developer", address: "Dhaka, Bangladesh" }
+];
+
+let currentUser = localStorage.getItem("currentUser") || null;
+let expenses = [];
+let incomes = [];
+let loans = [];
+let editingIndex = -1;
+let editingIncomeIndex = -1;
+let activePayGroupKey = null;
+let chartInstance = null;
+
+window.onload = function() {
+    localStorage.setItem("users", JSON.stringify(users));
+    if (currentUser) {
+        initDashboard();
+    }
+};
+
+document.addEventListener("click", function(e) {
+    const userDropdown = document.getElementById("userDropdownMenu");
+    const userBtn = document.querySelector(".header-user-btn");
+    if (userDropdown && !userDropdown.contains(e.target) && !userBtn.contains(e.target)) {
+        userDropdown.classList.remove("show");
+    }
+
+    const navDropdown = document.getElementById("navMenuDropdown");
+    const navBtn = document.querySelector(".header-menu-btn");
+    if (navDropdown && !navDropdown.contains(e.target) && !navBtn.contains(e.target)) {
+        navDropdown.classList.remove("show");
+    }
+});
+
+function toggleNavMenu(e) {
+    e.stopPropagation();
+    document.getElementById("userDropdownMenu").classList.remove("show");
+    const navDropdown = document.getElementById("navMenuDropdown");
+    navDropdown.classList.toggle("show");
+}
+
+function toggleUserDropdown(e) {
+    e.stopPropagation();
+    document.getElementById("navMenuDropdown").classList.remove("show");
+    const userDropdown = document.getElementById("userDropdownMenu");
+    userDropdown.classList.toggle("show");
+}
+
+function switchAuth(type) {
+    document.getElementById("loginMsg").innerText = "";
+    document.getElementById("signupMsg").innerText = "";
+    if (type === 'signup') {
+        document.getElementById("loginCard").style.display = "none";
+        document.getElementById("signupCard").style.display = "block";
+    } else {
+        document.getElementById("signupCard").style.display = "none";
+        document.getElementById("loginCard").style.display = "block";
+    }
+}
+
+function handleLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById("loginUsername").value.trim();
+    const p = document.getElementById("loginPassword").value;
+    
+    const user = users.find(x => x.username === u && x.password === p);
+    if (user) {
+        currentUser = user.username;
+        localStorage.setItem("currentUser", currentUser);
+        initDashboard();
+    } else {
+        document.getElementById("loginMsg").innerText = "Invalid credentials entered.";
+    }
+}
+
+function handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById("signupName").value.trim();
+    const age = document.getElementById("signupAge").value;
+    const sex = document.getElementById("signupSex").value;
+    const username = document.getElementById("signupUsername").value.trim();
+    const password = document.getElementById("signupPassword").value;
+
+    if (users.some(u => u.username === username)) {
+        document.getElementById("signupMsg").innerText = "Username already exists.";
+        return;
+    }
+
+    users.push({ name, age, sex, username, password, phone: "", profession: "", address: "" });
+    localStorage.setItem("users", JSON.stringify(users));
+    
+    currentUser = username;
+    localStorage.setItem("currentUser", currentUser);
+    initDashboard();
+}
+
+function handleLogout() {
+    currentUser = null;
+    localStorage.removeItem("currentUser");
+    document.getElementById("dashboardContainer").style.display = "none";
+    document.getElementById("authContainer").style.display = "flex";
+}
+
+function initDashboard() {
+    document.getElementById("authContainer").style.display = "none";
+    document.getElementById("dashboardContainer").style.display = "block";
+    
+    const userObj = users.find(u => u.username === currentUser);
+    document.getElementById("topHeaderUsername").innerText = currentUser;
+    
+    loadUserData();
+    renderDashboard();
+    loadProfileFields();
+}
+
+function loadUserData() {
+    expenses = JSON.parse(localStorage.getItem("expenses_" + currentUser)) || [];
+    incomes = JSON.parse(localStorage.getItem("incomes_" + currentUser)) || [];
+    loans = JSON.parse(localStorage.getItem("loans_" + currentUser)) || [];
+}
+
+function saveUserData() {
+    localStorage.setItem("expenses_" + currentUser, JSON.stringify(expenses));
+    localStorage.setItem("incomes_" + currentUser, JSON.stringify(incomes));
+    localStorage.setItem("loans_" + currentUser, JSON.stringify(loans));
+}
+
+function switchViewFromNav(viewId, element) {
+    document.getElementById("navMenuDropdown").classList.remove("show");
+    
+    document.querySelectorAll(".page-view").forEach(v => v.classList.remove("active"));
+    document.querySelectorAll(".nav-menu-item").forEach(i => i.classList.remove("active"));
+    
+    document.getElementById(viewId).classList.add("active");
+    if (element) element.classList.add("active");
+
+    if (viewId === 'expensesView') renderExpenses();
+    if (viewId === 'incomeView') renderIncomes();
+    if (viewId === 'loansView') renderLoans();
+    if (viewId === 'dashboardView') renderDashboard();
+}
+
+function switchViewFromHeader(viewId) {
+    document.getElementById("userDropdownMenu").classList.remove("show");
+    const targetItem = Array.from(document.querySelectorAll(".nav-menu-item")).find(item => item.getAttribute("onclick")?.includes(viewId));
+    switchViewFromNav(viewId, targetItem);
+}
+
+function renderDashboard() {
+    calculateMonthlyMetrics();
+    renderChart();
+}
+
+function calculateMonthlyMetrics() {
+    const now = new Date();
+    const cMonth = now.getMonth();
+    const cYear = now.getFullYear();
+    
+    let pMonth = cMonth - 1;
+    let pYear = cYear;
+    if (pMonth < 0) { pMonth = 11; pYear--; }
+
+    let currExpTotal = 0;
+    let prevExpTotal = 0;
+    let currIncTotal = 0;
+
+    expenses.forEach(exp => {
+        const d = new Date(exp.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            currExpTotal += exp.amount;
+        }
+        if (d.getMonth() === pMonth && d.getFullYear() === pYear) {
+            prevExpTotal += exp.amount;
+        }
+    });
+
+    incomes.forEach(inc => {
+        const d = new Date(inc.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            currIncTotal += inc.amount;
+        }
+    });
+
+    const netBalance = currIncTotal - currExpTotal;
+
+    document.getElementById("currMonthIncome").innerText = `৳${currIncTotal.toFixed(2)}`;
+    document.getElementById("currMonthExpense").innerText = `৳${currExpTotal.toFixed(2)}`;
+    document.getElementById("currMonthBalance").innerText = `৳${netBalance.toFixed(2)}`;
+    document.getElementById("prevMonthExpense").innerText = `৳${prevExpTotal.toFixed(2)}`;
+}
+
+function startEdit(index) {
+    editingIndex = index;
+    const item = expenses[index];
+    document.getElementById("mExpDate").value = item.date;
+    document.getElementById("mExpCategory").value = item.category;
+    document.getElementById("mExpDesc").value = item.description;
+    document.getElementById("mExpAmount").value = item.amount;
+    
+    document.getElementById("mExpSubmitBtn").innerText = "Update Expense Entry";
+}
+
+function deleteExpense(index) {
+    if (confirm("Delete this expense item?")) {
+        expenses.splice(index, 1);
+        saveUserData();
+        renderExpenses();
+        renderDashboard();
+    }
+}
+
+function handleExpenseSubmit(e) {
+    e.preventDefault();
+    const expData = {
+        date: document.getElementById("mExpDate").value,
+        category: document.getElementById("mExpCategory").value,
+        description: document.getElementById("mExpDesc").value,
+        amount: parseFloat(document.getElementById("mExpAmount").value)
+    };
+
+    if (editingIndex === -1) {
+        expenses.push(expData);
+    } else {
+        expenses[editingIndex] = expData;
+        editingIndex = -1;
+        document.getElementById("mExpSubmitBtn").innerText = "Add Expense Entry";
+    }
+
+    saveUserData();
+    renderExpenses();
+    renderDashboard();
+    document.getElementById("modalExpenseForm").reset();
+}
+
+function renderExpenses() {
+    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById("modalExpenseTableBody");
+    if(!tbody) return;
+    tbody.innerHTML = "";
+    
+    let totalExp = 0;
+    expenses.forEach((item, index) => {
+        totalExp += item.amount;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.category}</td>
+            <td>${item.description}</td>
+            <td>৳${item.amount.toFixed(2)}</td>
+            <td class="table-actions">
+                <button class="btn-action btn-edit" onclick="startEdit(${index})">Edit</button>
+                <button class="btn-action btn-delete" onclick="deleteExpense(${index})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("pageTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
+}
+
+function handleIncomeSubmit(e) {
+    e.preventDefault();
+    const incData = {
+        date: document.getElementById("incDate").value,
+        source: document.getElementById("incSource").value,
+        description: document.getElementById("incDesc").value,
+        amount: parseFloat(document.getElementById("incAmount").value)
+    };
+
+    if (editingIncomeIndex === -1) {
+        incomes.push(incData);
+    } else {
+        incomes[editingIncomeIndex] = incData;
+        editingIncomeIndex = -1;
+        document.getElementById("incSubmitBtn").innerText = "Record Income";
+    }
+
+    saveUserData();
+    renderIncomes();
+    renderDashboard();
+    document.getElementById("incomeForm").reset();
+}
+
+function startIncomeEdit(index) {
+    editingIncomeIndex = index;
+    const item = incomes[index];
+    document.getElementById("incDate").value = item.date;
+    document.getElementById("incSource").value = item.source;
+    document.getElementById("incDesc").value = item.description;
+    document.getElementById("incAmount").value = item.amount;
+    
+    document.getElementById("incSubmitBtn").innerText = "Update Income Entry";
+}
+
+function renderIncomes() {
+    incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById("incomeTableBody");
+    tbody.innerHTML = "";
+    
+    let totalIncome = 0;
+    incomes.forEach((item, index) => {
+        totalIncome += item.amount;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.source}</td>
+            <td>${item.description}</td>
+            <td>৳${item.amount.toFixed(2)}</td>
+            <td class="table-actions">
+                <button class="btn-action btn-edit" onclick="startIncomeEdit(${index})">Edit</button>
+                <button class="btn-action btn-delete" onclick="deleteIncome(${index})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("pageTotalIncome").innerText = `৳${totalIncome.toFixed(2)}`;
+}
+
+function deleteIncome(index) {
+    if (confirm("Delete this income entry?")) {
+        incomes.splice(index, 1);
+        saveUserData();
+        renderIncomes();
+        renderDashboard();
+    }
+}
+
+function handleLoanSubmit(e) {
+    e.preventDefault();
+    const loanData = {
+        date: document.getElementById("loanDate").value,
+        person: document.getElementById("loanPerson").value,
+        type: document.getElementById("loanType").value,
+        description: document.getElementById("loanDesc").value,
+        amount: parseFloat(document.getElementById("loanAmount").value),
+        payments: []
+    };
+
+    loans.push(loanData);
+    saveUserData();
+    renderLoans();
+    document.getElementById("loanForm").reset();
+}
+
+function getLoanSummary(item) {
+    const totalPaid = (item.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const remaining = Math.max(0, item.amount - totalPaid);
+    let status = "Pending";
+    if (remaining <= 0) {
+        status = "Repaid";
+    } else if (totalPaid > 0) {
+        status = "Partially Paid";
+    }
+    return { totalPaid, remaining, status };
+}
+
+function updateLoanPersonDropdown() {
+    const select = document.getElementById("loanReportPerson");
+    if (!select) return;
+
+    const uniquePersons = Array.from(new Set(loans.map(l => l.person.trim()))).sort();
+    
+    let html = '<option value="All">All Entities</option>';
+    uniquePersons.forEach(person => {
+        html += `<option value="${person}">${person}</option>`;
+    });
+    select.innerHTML = html;
+}
+
+function getFilteredLoanDataset() {
+    const typeFilter = document.getElementById("loanReportType").value;
+    const personFilter = document.getElementById("loanReportPerson").value;
+    const monthFilter = document.getElementById("loanReportMonth").value;
+
+    return loans.filter(item => {
+        const matchesType = (typeFilter === "All") || (item.type === typeFilter);
+        const matchesPerson = (personFilter === "All") || (item.person.trim().toLowerCase() === personFilter.toLowerCase());
+        const matchesMonth = (!monthFilter) || (item.date.startsWith(monthFilter));
+
+        return matchesType && matchesPerson && matchesMonth;
+    });
+}
+
+function generateLoanReport() {
+    const filtered = getFilteredLoanDataset();
+    let totalBorrowed = 0;
+    let totalLent = 0;
+    let totalBorrowedDue = 0;
+    let totalLentDue = 0;
+
+    filtered.forEach(item => {
+        const { remaining } = getLoanSummary(item);
+        if (item.type === "Borrowed") {
+            totalBorrowed += item.amount;
+            totalBorrowedDue += remaining;
+        } else {
+            totalLent += item.amount;
+            totalLentDue += remaining;
+        }
+    });
+
+    const outputEl = document.getElementById("loanReportOutput");
+    outputEl.innerHTML = `
+        <div style="display:flex; justify-content:center; gap: 20px; flex-wrap:wrap; margin-top: 6px;">
+            <span>Total Borrowed: <strong style="color:var(--danger);">৳${totalBorrowed.toFixed(2)}</strong> (Due: ৳${totalBorrowedDue.toFixed(2)})</span>
+            <span>Total Lent: <strong style="color:var(--primary);">৳${totalLent.toFixed(2)}</strong> (Due: ৳${totalLentDue.toFixed(2)})</span>
+        </div>
+    `;
+}
+
+function exportLoanPDFReport() {
+    const filtered = getFilteredLoanDataset();
+    const typeFilter = document.getElementById("loanReportType").value;
+    const personFilter = document.getElementById("loanReportPerson").value;
+    const monthFilter = document.getElementById("loanReportMonth").value;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const userObj = users.find(u => u.username === currentUser) || { name: currentUser };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(37, 99, 235);
+    doc.text("Loan & Debt Statement", 14, 20);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    
+    let filterText = `Filters: Type: ${typeFilter} | Entity: ${personFilter}`;
+    if (monthFilter) filterText += ` | Month: ${formatMonthYear(monthFilter)}`;
+    
+    doc.text(filterText, 14, 26);
+    doc.text(`Generated For: ${userObj.name}`, 14, 31);
+
+    let y = 42;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y - 5, 182, 8, 'F');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59);
+
+    doc.text("Date", 16, y);
+    doc.text("Person/Bank", 42, y);
+    doc.text("Type", 85, y);
+    doc.text("Principal", 115, y);
+    doc.text("Paid", 145, y);
+    doc.text("Remaining", 172, y);
+
+    y += 4;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    let grandBorrowedDue = 0;
+    let grandLentDue = 0;
+
+    doc.setFont("helvetica", "normal");
+
+    if (filtered.length === 0) {
+        y += 10;
+        doc.setTextColor(100, 116, 139);
+        doc.text("No matching loan/debt records found.", 14, y);
+    } else {
+        filtered.forEach(item => {
+            y += 7;
+            if (y > 265) {
+                doc.addPage();
+                y = 20;
+            }
+
+            const { totalPaid, remaining } = getLoanSummary(item);
+            if (item.type === "Borrowed") grandBorrowedDue += remaining;
+            else grandLentDue += remaining;
+
+            doc.setTextColor(30, 41, 59);
+            doc.text(item.date, 16, y);
+            doc.text((item.person || '').substring(0, 18), 42, y);
+            doc.text(item.type, 85, y);
+            doc.text(`Tk ${item.amount.toFixed(2)}`, 115, y);
+            doc.text(`Tk ${totalPaid.toFixed(2)}`, 145, y);
+
+            if (remaining > 0) doc.setTextColor(item.type === "Borrowed" ? 220 : 37, item.type === "Borrowed" ? 38 : 99, item.type === "Borrowed" ? 38 : 235);
+            else doc.setTextColor(16, 185, 129);
+
+            doc.text(`Tk ${remaining.toFixed(2)}`, 172, y);
+        });
+    }
+
+    y += 6;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    y += 10;
+    if (y > 265) {
+        doc.addPage();
+        y = 20;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+
+    doc.text(`Total Remaining Borrowed Due: Tk ${grandBorrowedDue.toFixed(2)}`, 14, y);
+    doc.text(`Total Remaining Lent Due: Tk ${grandLentDue.toFixed(2)}`, 115, y);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    const currentDate = new Date().toLocaleDateString('en-GB');
+
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 280, 196, 280);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+
+        doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
+    }
+
+    doc.save(`Loan_Report_${typeFilter}_${currentDate.replace(/\//g, '-')}.pdf`);
+}
+
+/* RENDER LOANS: SEPARATE BORROWED & LENT GROUPS PER PERSON */
+function renderLoans() {
+    updateLoanPersonDropdown();
+    const container = document.getElementById("loanTableBody");
+    if (!container) return;
+    container.innerHTML = "";
+
+    let totalBorrowedRemaining = 0;
+    let totalLentRemaining = 0;
+
+    const groupedLoans = {};
+
+    loans.forEach((item, originalIndex) => {
+        const key = `${item.person.trim().toLowerCase()}_${item.type}`;
+        if (!groupedLoans[key]) {
+            groupedLoans[key] = {
+                groupKey: key,
+                displayName: item.person.trim(),
+                type: item.type,
+                items: []
+            };
+        }
+        groupedLoans[key].items.push({ ...item, originalIndex });
+    });
+
+    Object.keys(groupedLoans).forEach(groupKey => {
+        const group = groupedLoans[groupKey];
+        let sectionTotalDue = 0;
+
+        group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let subRowsHtml = "";
+        let groupPayments = [];
+
+        group.items.forEach(item => {
+            const { remaining } = getLoanSummary(item);
+
+            if (item.type === "Borrowed") {
+                totalBorrowedRemaining += remaining;
+            } else {
+                totalLentRemaining += remaining;
+            }
+            sectionTotalDue += remaining;
+
+            if (item.payments && item.payments.length > 0) {
+                item.payments.forEach(p => {
+                    groupPayments.push({
+                        date: p.date,
+                        amount: p.amount,
+                        description: p.description || "",
+                        forLoan: item.description,
+                        loanDate: item.date
+                    });
+                });
+            }
+
+            subRowsHtml += `
+                <div style="border-top: 1px solid #f1f5f9; padding: 10px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">📅 ${item.date} - ${item.description}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">Principal: ৳${item.amount.toFixed(2)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:13px; font-weight:700; color: ${remaining > 0 ? 'var(--danger)' : 'var(--success)'};">
+                            Due: ৳${remaining.toFixed(2)}
+                        </span>
+                        <div style="margin-top:2px;">
+                            <button class="btn-action btn-delete" style="padding:2px 6px; font-size:10px;" onclick="deleteLoan(${item.originalIndex})">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const isLent = group.type === "Lent";
+        const primaryTypeBadge = isLent 
+            ? `<span class="badge badge-lent">Lent</span>` 
+            : `<span class="badge badge-borrowed">Borrowed</span>`;
+            
+        const balanceColor = isLent ? "var(--success)" : "var(--danger)";
+        const balanceText = isLent ? `+৳${sectionTotalDue.toFixed(2)} (To Receive)` : `-৳${sectionTotalDue.toFixed(2)} (To Pay)`;
+
+        groupPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        let historyLogsHtml = "";
+        if (groupPayments.length > 0) {
+            historyLogsHtml = groupPayments.map(p => `
+                <div class="history-item">
+                    <span>📅 ${p.date} (${p.forLoan})${p.description ? ' - <em>' + p.description + '</em>' : ''}</span>
+                    <span><strong>৳${p.amount.toFixed(2)}</strong></span>
+                </div>
+            `).join('');
+        } else {
+            historyLogsHtml = '<div style="color:var(--text-muted);"><em>No repayment logs recorded yet.</em></div>';
+        }
+
+        const groupCard = document.createElement("div");
+        groupCard.className = "person-loan-card";
+        groupCard.style.cssText = "background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; margin-bottom:16px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.04);";
+
+        groupCard.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:12px;">
+                <div>
+                    <h3 style="margin:0; font-size:18px; color:var(--primary);">👤 ${group.displayName} <span style="font-size:13px; font-weight:normal; color:var(--text-muted);">(${group.type})</span></h3>
+                </div>
+                
+                <div class="table-actions" style="align-items:center;">
+                    ${primaryTypeBadge}
+                    
+                    <button class="btn-action btn-bal">
+                        Remaining: <strong style="color:${balanceColor};">${balanceText}</strong>
+                    </button>
+                    
+                    <button class="btn-action btn-pay" onclick="openGroupPaymentModal('${groupKey}')">
+                        💵 Pay
+                    </button>
+                    
+                    <button class="btn-action btn-history" onclick="togglePersonHistory('${groupKey}')">
+                        📜 History
+                    </button>
+                </div>
+            </div>
+            
+            <div>${subRowsHtml}</div>
+
+            <div class="history-box" id="person-history-${groupKey}" style="display:none; margin-top: 12px;">
+                <strong style="display:block; margin-bottom:6px; color:var(--text-dark);">Payment History (${group.displayName} - ${group.type}):</strong>
+                ${historyLogsHtml}
+            </div>
+        `;
+
+        container.appendChild(groupCard);
+    });
+
+    document.getElementById("pageTotalBorrowed").innerText = `৳${totalBorrowedRemaining.toFixed(2)}`;
+    document.getElementById("pageTotalLent").innerText = `৳${totalLentRemaining.toFixed(2)}`;
+}
+
+function togglePersonHistory(groupKey) {
+    const el = document.getElementById(`person-history-${groupKey}`);
+    if (el) {
+        el.style.display = el.style.display === "none" ? "block" : "none";
+    }
+}
+
+function openGroupPaymentModal(groupKey) {
+    activePayGroupKey = groupKey;
+
+    const groupLoans = loans.filter(item => `${item.person.trim().toLowerCase()}_${item.type}` === groupKey);
+    if (groupLoans.length === 0) return;
+
+    const displayName = groupLoans[0].person.trim();
+    const type = groupLoans[0].type;
+
+    let totalPendingNet = 0;
+    groupLoans.forEach(item => {
+        const { remaining } = getLoanSummary(item);
+        if (remaining > 0) {
+            totalPendingNet += remaining;
+        }
+    });
+
+    if (totalPendingNet <= 0) {
+        alert("This record group has no remaining balance to pay.");
+        return;
+    }
+
+    document.getElementById("paymentModalInfo").innerHTML = `
+        <strong>Person / Entity:</strong> ${displayName} (${type})<br>
+        <strong>Total Remaining Balance:</strong> ৳${totalPendingNet.toFixed(2)}
+    `;
+    document.getElementById("payDate").value = new Date().toISOString().split('T')[0];
+    document.getElementById("payAmount").value = "";
+    document.getElementById("payDesc").value = "";
+    document.getElementById("payAmount").max = totalPendingNet;
+
+    document.getElementById("paymentModal").style.display = "flex";
+}
+
+function handlePaymentSubmit(e) {
+    e.preventDefault();
+    if (!activePayGroupKey) return;
+
+    const payDate = document.getElementById("payDate").value;
+    let payAmount = parseFloat(document.getElementById("payAmount").value);
+    const payDesc = document.getElementById("payDesc").value.trim();
+
+    if (isNaN(payAmount) || payAmount <= 0) {
+        alert("Please enter a valid payment amount.");
+        return;
+    }
+
+    const groupLoans = loans
+        .filter(item => `${item.person.trim().toLowerCase()}_${item.type}` === activePayGroupKey)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let totalPendingNet = 0;
+    groupLoans.forEach(item => {
+        const { remaining } = getLoanSummary(item);
+        totalPendingNet += remaining;
+    });
+
+    if (payAmount > totalPendingNet) {
+        alert(`Payment amount cannot exceed total remaining balance (৳${totalPendingNet.toFixed(2)}).`);
+        return;
+    }
+
+    let remainingPayment = payAmount;
+    for (let item of groupLoans) {
+        if (remainingPayment <= 0) break;
+
+        const { remaining } = getLoanSummary(item);
+        if (remaining > 0) {
+            const allocation = Math.min(remainingPayment, remaining);
+            if (!item.payments) item.payments = [];
+            item.payments.push({ date: payDate, amount: allocation, description: payDesc });
+            remainingPayment -= allocation;
+        }
+    }
+
+    saveUserData();
+    renderLoans();
+    closeModal('paymentModal');
+}
+
+function deleteLoan(index) {
+    if (confirm("Delete this loan entry?")) {
+        loans.splice(index, 1);
+        saveUserData();
+        renderLoans();
+    }
+}
+
+function renderChart() {
+    const now = new Date();
+    const cMonth = now.getMonth();
+    const cYear = now.getFullYear();
+    
+    const catTotals = {};
+
+    expenses.forEach(exp => {
+        const d = new Date(exp.date);
+        if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
+            catTotals[exp.category] = (catTotals[exp.category] || 0) + exp.amount;
+        }
+    });
+
+    const ctx = document.getElementById("categoryChart").getContext("2d");
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+        type: 'pie',
+        plugins: [ChartDataLabels],
+        data: {
+            labels: Object.keys(catTotals),
+            datasets: [{
+                data: Object.values(catTotals),
+                backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                datalabels: {
+                    color: '#fff',
+                    formatter: (val, ctx) => {
+                        let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        return ((val / total) * 100).toFixed(1) + "%";
+                    }
+                }
+            }
+        }
+    });
+}
+
+function formatMonthYear(monthString) {
+    const [year, month] = monthString.split('-');
+    const date = new Date(year, parseInt(month) - 1, 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+function generateMonthlyReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    if (!selected) return alert("Select a target month first.");
+
+    const dataset = reportType === 'expense' ? expenses : incomes;
+    const total = dataset
+        .filter(item => item.date.startsWith(selected))
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const formattedMonth = formatMonthYear(selected);
+    const typeLabel = reportType === 'expense' ? 'Expense' : 'Income';
+    document.getElementById("reportOutput").innerText = `${formattedMonth} ${typeLabel}: ৳${total.toFixed(2)}`;
+}
+
+function exportPDFReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    if (!selected) return alert("Select a month to export.");
+
+    const formattedMonth = formatMonthYear(selected);
+    const isExpense = reportType === 'expense';
+    const dataset = isExpense ? expenses : incomes;
+    const filtered = dataset.filter(item => item.date.startsWith(selected));
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const userObj = users.find(u => u.username === currentUser) || { name: currentUser };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(37, 99, 235);
+    doc.text(isExpense ? "Monthly Expense Statement" : "Monthly Income Statement", 14, 22);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Report Period: ${formattedMonth}`, 14, 29);
+    doc.text(`Generated For: ${userObj.name}`, 14, 34);
+
+    let y = 45;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y - 5, 182, 8, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    
+    doc.text("Date", 16, y);
+    doc.text(isExpense ? "Category" : "Source", 52, y);
+    doc.text("Description", 100, y);
+    doc.text("Amount (BDT)", 165, y);
+
+    y += 4;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    let subtotal = 0;
+    doc.setFont("helvetica", "normal");
+    
+    if (filtered.length === 0) {
+        y += 10;
+        doc.setTextColor(100, 116, 139);
+        doc.text("No records found for this selected period.", 14, y);
+    } else {
+        filtered.forEach(item => {
+            y += 8;
+            if (y > 265) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.setTextColor(30, 41, 59);
+            doc.text(item.date, 16, y);
+            doc.text(isExpense ? item.category : item.source, 52, y);
+            doc.text((item.description || '').substring(0, 25), 100, y);
+            
+            const amtText = `Tk ${item.amount.toFixed(2)}`;
+            doc.text(amtText, 195 - doc.getTextWidth(amtText), y);
+            
+            subtotal += item.amount;
+        });
+    }
+
+    y += 6;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    y += 10;
+    if (y > 265) {
+        doc.addPage();
+        y = 20;
+    }
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Total ${isExpense ? 'Expenses' : 'Income'}:`, 120, y);
+    
+    const finalTotalText = `Tk ${subtotal.toFixed(2)}`;
+    doc.setTextColor(isExpense ? 220 : 16, isExpense ? 38 : 185, isExpense ? 38 : 129);
+    doc.text(finalTotalText, 195 - doc.getTextWidth(finalTotalText), y);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 280, 196, 280);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        
+        doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
+    }
+
+    doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selected}.pdf`);
+}
+
+function loadProfileFields() {
+    const user = users.find(u => u.username === currentUser);
+    if (user) {
+        document.getElementById("profileFullName").value = user.name || "";
+        document.getElementById("profilePhone").value = user.phone || "";
+        document.getElementById("profileProfession").value = user.profession || "";
+        document.getElementById("profileAddress").value = user.address || "";
+        document.getElementById("profileAge").value = user.age || "";
+        document.getElementById("profileSex").value = user.sex || "";
+    }
+}
+
+function handleProfileUpdate(e) {
+    e.preventDefault();
+    const newName = document.getElementById("profileFullName").value.trim();
+    const newPhone = document.getElementById("profilePhone").value.trim();
+    const newProfession = document.getElementById("profileProfession").value.trim();
+    const newAddress = document.getElementById("profileAddress").value.trim();
+    const newAge = document.getElementById("profileAge").value;
+    const newSex = document.getElementById("profileSex").value;
+
+    const user = users.find(u => u.username === currentUser);
+    if (user) {
+        user.name = newName;
+        user.phone = newPhone;
+        user.profession = newProfession;
+        user.address = newAddress;
+        user.age = newAge;
+        user.sex = newSex;
+        
+        localStorage.setItem("users", JSON.stringify(users));
+        alert("Profile details updated successfully.");
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = "none";
+    if(modalId === 'paymentModal') {
+        activePayGroupKey = null;
+    }
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    const curr = document.getElementById("currPassword").value;
+    const next = document.getElementById("newPassword").value;
+    const confirm = document.getElementById("confirmPassword").value;
+    const msgEl = document.getElementById("passChangeMsg");
+
+    const user = users.find(u => u.username === currentUser);
+
+    if (user.password !== curr) {
+        msgEl.innerText = "Current password is incorrect.";
+        return;
+    }
+    if (next !== confirm) {
+        msgEl.innerText = "New passwords do not match.";
+        return;
+    }
+
+    user.password = next;
+    localStorage.setItem("users", JSON.stringify(users));
+    msgEl.innerText = "";
+    alert("Password updated successfully.");
+}
+</script>
+</body>
+</html>
