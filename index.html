@@ -525,7 +525,7 @@ select.form-control {
     gap: 10px;
     margin-bottom: 10px;
 }
-https://script.google.com/macros/s/AKfycbwj2oH7PfrN88leuotAamG4c0-0PluTlo9GG2Rm8QAf0mNs9zIsrDxo9rNcvK0on4qVkQ/exec
+
 .report-controls {
     display: flex;
     gap: 10px;
@@ -1143,7 +1143,7 @@ footer {
 
 <script>
 // --- CONFIGURE GOOGLE SHEETS SCRIPT URL HERE ---
-const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwj2oH7PfrN88leuotAamG4c0-0PluTlo9GG2Rm8QAf0mNs9zIsrDxo9rNcvK0on4qVkQ/exec";
 
 let users = JSON.parse(localStorage.getItem("users")) || [
     { username: "admin", password: "admin", name: "Administrator", age: "30", sex: "Male", phone: "", profession: "Admin", address: "" },
@@ -1174,7 +1174,7 @@ function toggleSyncing(show) {
 async function loadUserData() {
     toggleSyncing(true);
     try {
-        const res = await fetch(`${SCRIPT_URL}?action=getData&username=${currentUser}`);
+        const res = await fetch(`${SCRIPT_URL}?action=getData&username=${encodeURIComponent(currentUser)}`);
         const data = await res.json();
         expenses = data.expenses || [];
         incomes = data.incomes || [];
@@ -1604,7 +1604,7 @@ function exportLoanPDFReport() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 116, 139);
     
-    let filterText = `Filters: Type: ${typeFilter} \vert{} Entity:${personFilter}`;
+    let filterText = `Filters: Type: ${typeFilter} | Entity: ${personFilter}`;
     if (monthFilter) filterText += ` | Month: ${formatMonthYear(monthFilter)}`;
     
     doc.text(filterText, 14, 26);
@@ -1694,7 +1694,7 @@ function exportLoanPDFReport() {
         doc.setTextColor(148, 163, 184);
 
         doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
-        doc.text(`Page ${i} of${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of${pageCount}`), 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
     }
 
     doc.save(`Loan_Report_${typeFilter}_${currentDate.replace(/\//g, '-')}.pdf`);
@@ -1758,7 +1758,7 @@ function renderLoans() {
             subRowsHtml += `
                 <div style="border-top: 1px solid #f1f5f9; padding: 10px 0; display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">📅 ${item.date} -${item.description}</div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">📅 ${item.date} - ${item.description}</div>
                         <div style="font-size:12px; color:var(--text-muted);">Principal: ৳${item.amount.toFixed(2)}</div>
                     </div>
                     <div style="text-align:right;">
@@ -2096,7 +2096,7 @@ function exportPDFReport() {
         doc.setTextColor(148, 163, 184);
         
         doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
-        doc.text(`Page ${i} of${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of${pageCount}`), 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
     }
 
     doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selected}.pdf`);
