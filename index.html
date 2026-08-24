@@ -83,8 +83,10 @@ select.form-control {
     gap: 12px;
 }
 
-.expense-form-grid button { 
-    grid-column: 1 / -1; 
+.form-actions-container {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
     margin-top: 4px;
 }
 
@@ -513,6 +515,22 @@ select.form-control {
 
 .chart-box h3, .report-box h3 { margin-top: 0; font-size: 16px; }
 
+.chart-wrapper {
+    position: relative;
+    height: 230px;
+    width: 100%;
+}
+
+.chart-no-data {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-muted);
+    font-size: 14px;
+    display: none;
+}
+
 .chart-box canvas {
     max-width: 100% !important;
     max-height: 230px !important;
@@ -578,6 +596,9 @@ th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
     display: inline-block;
 }
 
+.badge-pending { background: #fef3c7; color: #b45309; }
+.badge-partial { background: #e0f2fe; color: #0369a1; }
+.badge-repaid { background: #d1fae5; color: #047857; }
 .badge-borrowed { background: #fee2e2; color: #b91c1c; }
 .badge-lent { background: #e0e7ff; color: #4338ca; }
 
@@ -760,7 +781,7 @@ footer {
 
             <div class="header-user-dropdown">
                 <button class="header-user-btn" onclick="toggleUserDropdown(event)">
-                    <span>👤</span> <span id="topHeaderUsername">User</span> <span>▼</span>
+                    <span>👤</span> <span id="topHeaderUsername">admin</span> <span>▼</span>
                 </button>
                 <div class="dropdown-menu" id="userDropdownMenu">
                     <div class="dropdown-item" onclick="switchViewFromHeader('profileView')">✏️ Edit Profile</div>
@@ -818,7 +839,10 @@ footer {
             <div class="analytics-grid">
                 <div class="chart-box">
                     <h3>This Month Breakdown</h3>
-                    <canvas id="categoryChart"></canvas>
+                    <div class="chart-wrapper">
+                        <canvas id="categoryChart"></canvas>
+                        <div id="chartNoData" class="chart-no-data">No expense data for this month</div>
+                    </div>
                 </div>
                 <div class="report-box">
                     <h3>Monthly Report Generator</h3>
@@ -881,7 +905,10 @@ footer {
                         <label>Amount (৳)</label>
                         <input type="number" id="mExpAmount" class="form-control" placeholder="0.00" step="0.01" required>
                     </div>
-                    <button type="submit" id="mExpSubmitBtn" class="btn">Add Expense Entry</button>
+                    <div class="form-actions-container">
+                        <button type="submit" id="mExpSubmitBtn" class="btn">Add Expense Entry</button>
+                        <button type="button" id="mExpCancelBtn" class="btn btn-secondary" style="display: none;" onclick="resetExpenseForm()">Cancel Edit</button>
+                    </div>
                 </div>
             </form>
             <div class="table-container">
@@ -933,7 +960,10 @@ footer {
                         <label>Amount (৳)</label>
                         <input type="number" id="incAmount" class="form-control" placeholder="0.00" step="0.01" required>
                     </div>
-                    <button type="submit" id="incSubmitBtn" class="btn">Record Income</button>
+                    <div class="form-actions-container">
+                        <button type="submit" id="incSubmitBtn" class="btn">Record Income</button>
+                        <button type="button" id="incCancelBtn" class="btn btn-secondary" style="display: none;" onclick="resetIncomeForm()">Cancel Edit</button>
+                    </div>
                 </div>
             </form>
             <div class="table-container">
@@ -1017,7 +1047,9 @@ footer {
                         <label>Total Amount (৳)</label>
                         <input type="number" id="loanAmount" class="form-control" placeholder="0.00" step="0.01" required>
                     </div>
-                    <button type="submit" class="btn">Add Loan Record</button>
+                    <div class="form-actions-container">
+                        <button type="submit" class="btn">Add Loan Record</button>
+                    </div>
                 </div>
             </form>
 
@@ -1058,7 +1090,9 @@ footer {
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn">Save Changes</button>
+                    <div class="form-actions-container">
+                        <button type="submit" class="btn">Save Changes</button>
+                    </div>
                 </div>
             </form>
 
@@ -1079,7 +1113,9 @@ footer {
                         <label>Confirm New Password</label>
                         <input type="password" id="confirmPassword" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn">Update Password</button>
+                    <div class="form-actions-container">
+                        <button type="submit" class="btn">Update Password</button>
+                    </div>
                 </div>
             </form>
         </section>
@@ -1089,12 +1125,11 @@ footer {
             <h2 class="page-header">ℹ️ About Application</h2>
             <div style="line-height: 1.6; color: var(--text-dark); font-size: 14px;">
                 <p><strong>Money Expense Tracker v2.0</strong></p>
-                <p>A smart personal finance application featuring integrated Google Sheets cloud storage backend, Web Crypto API security, embedded menu navigation, and exportable financial summary statements.</p>
+                <p>A smart personal finance application featuring integrated Google Sheets storage backend, embedded menu navigation, and exportable financial summary statements.</p>
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
                 <p><strong>Key Features:</strong></p>
                 <ul style="padding-left: 20px; margin: 0 0 15px;">
                     <li>Google Sheets cloud persistence sync</li>
-                    <li>PBKDF2 salted password hashing security</li>
                     <li>Separated Borrowed & Lent controls per person</li>
                     <li>Expense, Income & Debt modules</li>
                     <li>Partial loan repayments with full audit history</li>
@@ -1140,12 +1175,15 @@ footer {
 </div>
 
 <script>
-// --- CONFIGURATION ---
+// --- CONFIGURE GOOGLE SHEETS SCRIPT URL HERE ---
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdlTI-NxQEATZ2vq0n6aAGN7ZAd3etx21u_gGwbT9O8DJ2Pwj0Q62ixWBGRLF2YyfUwQ/exec";
 
-// Global Application State
-let users = [];
-let currentUser = null;
+let users = JSON.parse(localStorage.getItem("users")) || [
+    { username: "admin", password: "admin", name: "Administrator", age: "30", sex: "Male", phone: "", profession: "Admin", address: "" },
+    { username: "ekram", password: "1234", name: "Ekramul Haque", age: "26", sex: "Male", phone: "+8801700000000", profession: "Developer", address: "Dhaka, Bangladesh" }
+];
+
+let currentUser = localStorage.getItem("currentUser") || null;
 let expenses = [];
 let incomes = [];
 let loans = [];
@@ -1154,64 +1192,8 @@ let editingIncomeIndex = -1;
 let activePayGroupKey = null;
 let chartInstance = null;
 
-// --- UTILITY: WEB CRYPTO PBKDF2 HASHING ---
-async function hashPassword(password, saltHex = null) {
-    const encoder = new TextEncoder();
-    const salt = saltHex 
-        ? new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-        : window.crypto.getRandomValues(new Uint8Array(16));
-
-    const keyMaterial = await window.crypto.subtle.importKey(
-        "raw", encoder.encode(password), { name: "PBKDF2" }, false, ["deriveBits", "deriveKey"]
-    );
-
-    const derivedKey = await window.crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: salt,
-            iterations: 100000,
-            hash: "SHA-256"
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt", "decrypt"]
-    );
-
-    const exportedKey = await window.crypto.subtle.exportKey("raw", derivedKey);
-    const hashHex = Array.from(new Uint8Array(exportedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const saltHexStr = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-
-    return { hash: hashHex, salt: saltHexStr };
-}
-
-// --- SESSION TOKEN MANAGER ---
-const AuthSession = {
-    setSession(username) {
-        const token = btoa(JSON.stringify({ username, exp: Date.now() + (86400 * 1000) }));
-        sessionStorage.setItem("authToken", token);
-    },
-    getSession() {
-        const token = sessionStorage.getItem("authToken");
-        if (!token) return null;
-        try {
-            const payload = JSON.parse(atob(token));
-            if (Date.now() > payload.exp) {
-                this.clearSession();
-                return null;
-            }
-            return payload.username;
-        } catch (e) {
-            return null;
-        }
-    },
-    clearSession() {
-        sessionStorage.removeItem("authToken");
-    }
-};
-
 window.onload = function() {
-    currentUser = AuthSession.getSession();
+    localStorage.setItem("users", JSON.stringify(users));
     if (currentUser) {
         initDashboard();
     }
@@ -1220,37 +1202,6 @@ window.onload = function() {
 function toggleSyncing(show) {
     const badge = document.getElementById("syncBadge");
     if(badge) badge.style.display = show ? "flex" : "none";
-}
-
-// --- CLOUD API INTERACTION LOGIC ---
-async function loadUsersFromCloud() {
-    try {
-        const res = await fetch(`${SCRIPT_URL}?action=getUsers`);
-        const data = await res.json();
-        return data.users || [];
-    } catch(err) {
-        console.error("Failed to load users from cloud:", err);
-        return [];
-    }
-}
-
-async function saveUsersToCloud(usersList) {
-    toggleSyncing(true);
-    try {
-        await fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                action: "saveUsers",
-                users: usersList
-            })
-        });
-    } catch(err) {
-        console.error("Failed to sync users to cloud:", err);
-    } finally {
-        toggleSyncing(false);
-    }
 }
 
 async function loadUserData() {
@@ -1274,8 +1225,7 @@ async function saveUserData() {
     try {
         await fetch(SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
                 action: "saveData",
                 username: currentUser,
@@ -1291,7 +1241,6 @@ async function saveUserData() {
     }
 }
 
-// --- UI EVENT HANDLERS & DROPDOWNS ---
 document.addEventListener("click", function(e) {
     const userDropdown = document.getElementById("userDropdownMenu");
     const userBtn = document.querySelector(".header-user-btn");
@@ -1332,117 +1281,56 @@ function switchAuth(type) {
     }
 }
 
-// --- CLOUD AUTHENTICATION LOGIC ---
-async function handleLogin(e) {
+function handleLogin(e) {
     e.preventDefault();
-    const loginMsg = document.getElementById("loginMsg");
-    loginMsg.innerText = "Authenticating...";
-    toggleSyncing(true);
-
-    const u = document.getElementById("loginUsername").value.trim().toLowerCase();
+    const u = document.getElementById("loginUsername").value.trim();
     const p = document.getElementById("loginPassword").value;
-
-    users = await loadUsersFromCloud();
-    toggleSyncing(false);
-
-    const user = users.find(x => x.username.toLowerCase() === u);
     
-    if (!user) {
-        loginMsg.innerText = "Invalid username or password.";
-        return;
-    }
-
-    let isAuthenticated = false;
-    if (user.salt && user.hash) {
-        const hashedInput = await hashPassword(p, user.salt);
-        isAuthenticated = (hashedInput.hash === user.hash);
-    } else if (user.password === p) {
-        const credentials = await hashPassword(p);
-        user.hash = credentials.hash;
-        user.salt = credentials.salt;
-        delete user.password;
-        await saveUsersToCloud(users);
-        isAuthenticated = true;
-    }
-
-    if (isAuthenticated) {
-        AuthSession.setSession(user.username);
+    const user = users.find(x => x.username === u && x.password === p);
+    if (user) {
         currentUser = user.username;
-        loginMsg.innerText = "";
+        localStorage.setItem("currentUser", currentUser);
         initDashboard();
-        document.getElementById("loginForm").reset();
     } else {
-        loginMsg.innerText = "Invalid username or password.";
+        document.getElementById("loginMsg").innerText = "Invalid credentials entered.";
     }
 }
 
-async function handleSignup(e) {
+function handleSignup(e) {
     e.preventDefault();
-    const signupMsg = document.getElementById("signupMsg");
-    signupMsg.innerText = "Creating account...";
-    toggleSyncing(true);
-
     const name = document.getElementById("signupName").value.trim();
     const age = document.getElementById("signupAge").value;
     const sex = document.getElementById("signupSex").value;
-    const username = document.getElementById("signupUsername").value.trim().toLowerCase();
+    const username = document.getElementById("signupUsername").value.trim();
     const password = document.getElementById("signupPassword").value;
 
-    if (username.length < 3) {
-        signupMsg.innerText = "Username must be at least 3 characters.";
-        toggleSyncing(false);
-        return;
-    }
-    if (password.length < 6) {
-        signupMsg.innerText = "Password must be at least 6 characters long.";
-        toggleSyncing(false);
+    if (users.some(u => u.username === username)) {
+        document.getElementById("signupMsg").innerText = "Username already exists.";
         return;
     }
 
-    users = await loadUsersFromCloud();
-
-    if (users.some(u => u.username.toLowerCase() === username)) {
-        signupMsg.innerText = "Username already taken.";
-        toggleSyncing(false);
-        return;
-    }
-
-    const { hash, salt } = await hashPassword(password);
-
-    users.push({
-        username,
-        name,
-        age,
-        sex,
-        hash,
-        salt,
-        phone: "",
-        profession: "",
-        address: ""
-    });
-
-    await saveUsersToCloud(users);
-    AuthSession.setSession(username);
+    users.push({ name, age, sex, username, password, phone: "", profession: "", address: "" });
+    localStorage.setItem("users", JSON.stringify(users));
+    
     currentUser = username;
-    signupMsg.innerText = "";
+    localStorage.setItem("currentUser", currentUser);
     initDashboard();
-    document.getElementById("signupForm").reset();
 }
 
 function handleLogout() {
-    AuthSession.clearSession();
     currentUser = null;
+    localStorage.removeItem("currentUser");
     document.getElementById("dashboardContainer").style.display = "none";
     document.getElementById("authContainer").style.display = "flex";
 }
 
-async function initDashboard() {
+function initDashboard() {
     document.getElementById("authContainer").style.display = "none";
     document.getElementById("dashboardContainer").style.display = "block";
     
     document.getElementById("topHeaderUsername").innerText = currentUser;
-    await loadUserData();
-    await loadProfileFields();
+    loadUserData();
+    loadProfileFields();
 }
 
 function switchViewFromNav(viewId, element) {
@@ -1466,7 +1354,6 @@ function switchViewFromHeader(viewId) {
     switchViewFromNav(viewId, targetItem);
 }
 
-// --- DASHBOARD ANALYTICS & COMPUTATIONS ---
 function renderDashboard() {
     calculateMonthlyMetrics();
     renderChart();
@@ -1510,7 +1397,6 @@ function calculateMonthlyMetrics() {
     document.getElementById("prevMonthExpense").innerText = `৳${prevExpTotal.toFixed(2)}`;
 }
 
-// --- EXPENSES MODULE ---
 function startEdit(index) {
     editingIndex = index;
     const item = expenses[index];
@@ -1520,11 +1406,20 @@ function startEdit(index) {
     document.getElementById("mExpAmount").value = item.amount;
     
     document.getElementById("mExpSubmitBtn").innerText = "Update Expense Entry";
+    document.getElementById("mExpCancelBtn").style.display = "block";
+}
+
+function resetExpenseForm() {
+    editingIndex = -1;
+    document.getElementById("modalExpenseForm").reset();
+    document.getElementById("mExpSubmitBtn").innerText = "Add Expense Entry";
+    document.getElementById("mExpCancelBtn").style.display = "none";
 }
 
 function deleteExpense(index) {
     if (confirm("Delete this expense item?")) {
         expenses.splice(index, 1);
+        if (editingIndex === index) resetExpenseForm();
         saveUserData();
         renderExpenses();
         renderDashboard();
@@ -1544,14 +1439,12 @@ function handleExpenseSubmit(e) {
         expenses.push(expData);
     } else {
         expenses[editingIndex] = expData;
-        editingIndex = -1;
-        document.getElementById("mExpSubmitBtn").innerText = "Add Expense Entry";
     }
 
     saveUserData();
+    resetExpenseForm();
     renderExpenses();
     renderDashboard();
-    document.getElementById("modalExpenseForm").reset();
 }
 
 function renderExpenses() {
@@ -1580,7 +1473,6 @@ function renderExpenses() {
     document.getElementById("pageTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
 }
 
-// --- INCOME MODULE ---
 function handleIncomeSubmit(e) {
     e.preventDefault();
     const incData = {
@@ -1594,14 +1486,12 @@ function handleIncomeSubmit(e) {
         incomes.push(incData);
     } else {
         incomes[editingIncomeIndex] = incData;
-        editingIncomeIndex = -1;
-        document.getElementById("incSubmitBtn").innerText = "Record Income";
     }
 
     saveUserData();
+    resetIncomeForm();
     renderIncomes();
     renderDashboard();
-    document.getElementById("incomeForm").reset();
 }
 
 function startIncomeEdit(index) {
@@ -1613,6 +1503,14 @@ function startIncomeEdit(index) {
     document.getElementById("incAmount").value = item.amount;
     
     document.getElementById("incSubmitBtn").innerText = "Update Income Entry";
+    document.getElementById("incCancelBtn").style.display = "block";
+}
+
+function resetIncomeForm() {
+    editingIncomeIndex = -1;
+    document.getElementById("incomeForm").reset();
+    document.getElementById("incSubmitBtn").innerText = "Record Income";
+    document.getElementById("incCancelBtn").style.display = "none";
 }
 
 function renderIncomes() {
@@ -1643,13 +1541,13 @@ function renderIncomes() {
 function deleteIncome(index) {
     if (confirm("Delete this income entry?")) {
         incomes.splice(index, 1);
+        if (editingIncomeIndex === index) resetIncomeForm();
         saveUserData();
         renderIncomes();
         renderDashboard();
     }
 }
 
-// --- LOAN & DEBT MODULE ---
 function handleLoanSubmit(e) {
     e.preventDefault();
     const loanData = {
@@ -2079,7 +1977,6 @@ function deleteLoan(index) {
     }
 }
 
-// --- CHART RENDERING ---
 function renderChart() {
     const now = new Date();
     const cMonth = now.getMonth();
@@ -2094,8 +1991,20 @@ function renderChart() {
         }
     });
 
-    const ctx = document.getElementById("categoryChart").getContext("2d");
+    const canvas = document.getElementById("categoryChart");
+    const noDataEl = document.getElementById("chartNoData");
+    const ctx = canvas.getContext("2d");
+
     if (chartInstance) chartInstance.destroy();
+
+    if (Object.keys(catTotals).length === 0) {
+        canvas.style.display = "none";
+        noDataEl.style.display = "block";
+        return;
+    }
+
+    canvas.style.display = "block";
+    noDataEl.style.display = "none";
 
     chartInstance = new Chart(ctx, {
         type: 'pie',
@@ -2124,7 +2033,6 @@ function renderChart() {
     });
 }
 
-// --- PDF REPORTS GENERATION ---
 function formatMonthYear(monthString) {
     const [year, month] = monthString.split('-');
     const date = new Date(year, parseInt(month) - 1, 1);
@@ -2252,9 +2160,7 @@ function exportPDFReport() {
     doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selected}.pdf`);
 }
 
-// --- PROFILE & SECURITY UPDATES ---
-async function loadProfileFields() {
-    users = await loadUsersFromCloud();
+function loadProfileFields() {
     const user = users.find(u => u.username === currentUser);
     if (user) {
         document.getElementById("profileFullName").value = user.name || "";
@@ -2266,9 +2172,8 @@ async function loadProfileFields() {
     }
 }
 
-async function handleProfileUpdate(e) {
+function handleProfileUpdate(e) {
     e.preventDefault();
-    users = await loadUsersFromCloud();
     const user = users.find(u => u.username === currentUser);
     if (user) {
         user.name = document.getElementById("profileFullName").value.trim();
@@ -2278,7 +2183,7 @@ async function handleProfileUpdate(e) {
         user.age = document.getElementById("profileAge").value;
         user.sex = document.getElementById("profileSex").value;
         
-        await saveUsersToCloud(users);
+        localStorage.setItem("users", JSON.stringify(users));
         alert("Profile details updated successfully.");
     }
 }
@@ -2290,40 +2195,26 @@ function closeModal(modalId) {
     }
 }
 
-async function handleChangePassword(e) {
+function handleChangePassword(e) {
     e.preventDefault();
     const curr = document.getElementById("currPassword").value;
     const next = document.getElementById("newPassword").value;
     const confirm = document.getElementById("confirmPassword").value;
     const msgEl = document.getElementById("passChangeMsg");
 
+    const user = users.find(u => u.username === currentUser);
+
+    if (user.password !== curr) {
+        msgEl.innerText = "Current password is incorrect.";
+        return;
+    }
     if (next !== confirm) {
         msgEl.innerText = "New passwords do not match.";
         return;
     }
 
-    users = await loadUsersFromCloud();
-    const user = users.find(u => u.username === currentUser);
-
-    let validCurr = false;
-    if (user.salt && user.hash) {
-        const hashedInput = await hashPassword(curr, user.salt);
-        validCurr = (hashedInput.hash === user.hash);
-    } else {
-        validCurr = (user.password === curr);
-    }
-
-    if (!validCurr) {
-        msgEl.innerText = "Current password is incorrect.";
-        return;
-    }
-
-    const { hash, salt } = await hashPassword(next);
-    user.hash = hash;
-    user.salt = salt;
-    delete user.password;
-
-    await saveUsersToCloud(users);
+    user.password = next;
+    localStorage.setItem("users", JSON.stringify(users));
     msgEl.innerText = "";
     alert("Password updated successfully.");
 }
