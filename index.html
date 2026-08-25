@@ -1922,8 +1922,7 @@ function renderLoans() {
                                 <span>Paid: ৳${totalPaid.toFixed(2)}</span>
                                 <span>${overdueText}</span>
                             </div>
-                            <div class="loan-progress"><div style="width:${paidPercent.toFixed(1)}%;"></div></div>
-                            ${item.notes ? `<div style="font-size:11px;color:var(--text-muted);">📝 ${item.notes}</div>` : ""}
+                                            ${item.notes ? `<div style="font-size:11px;color:var(--text-muted);">📝 ${item.notes}</div>` : ""}
                         </div>
                         <div style="text-align:right; min-width:145px;">
                             ${loanStatusBadge(status)}
@@ -1970,13 +1969,16 @@ function renderLoans() {
 
         groupCard.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;margin-bottom:12px;">
-                <div>
+                <div style="flex:1;min-width:260px;">
                     <h3 style="margin:0;font-size:18px;color:var(--primary);">👤 ${group.displayName}</h3>
                     <div class="loan-meta">
                         ${loanStatusBadge(sectionTotalDue <= 0.005 ? "Repaid" : (sectionPaid > 0 ? "Partially Paid" : "Pending"))}
                         <span>Principal: ৳${sectionPrincipal.toFixed(2)}</span>
                         <span>Paid: ৳${sectionPaid.toFixed(2)}</span>
+                        <span>Remaining: ৳${sectionTotalDue.toFixed(2)}</span>
                     </div>
+                    <div class="loan-progress"><div style="width:${sectionPrincipal > 0 ? Math.min(100, (sectionPaid / sectionPrincipal) * 100).toFixed(1) : 0}%;"></div></div>
+                    <div style="font-size:11px;color:var(--text-muted);text-align:right;">${sectionPrincipal > 0 ? Math.min(100, (sectionPaid / sectionPrincipal) * 100).toFixed(1) : "0.0"}% paid</div>
                 </div>
                 <div class="table-actions" style="align-items:center;">
                     <span class="badge ${isLent ? "badge-lent" : "badge-borrowed"}">${group.type}</span>
