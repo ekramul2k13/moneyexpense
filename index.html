@@ -1878,18 +1878,14 @@ function renderLoans() {
     Object.values(groupedLoans).forEach(group => {
         group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let principal = 0;
-        let paid = 0;
-        let remaining = 0;
-        let paymentCount = 0;
-        let lastPaymentDate = "";
-        let nextDueDate = "";
+        let principal = 0, paid = 0, remaining = 0;
+        let paymentCount = 0, lastPaymentDate = "", nextDueDate = "";
         let transactions = [];
 
         group.items.forEach(item => {
             if (!Array.isArray(item.payments)) item.payments = [];
-
             const summary = getLoanSummary(item);
+
             principal += Number(item.amount) || 0;
             paid += summary.totalPaid;
             remaining += summary.remaining;
@@ -1917,58 +1913,38 @@ function renderLoans() {
                     kind: group.type === "Borrowed" ? "Repayment" : "Received",
                     amount: Number(p.amount) || 0,
                     description: p.description || "Payment",
-                    paymentMethod: p.paymentMethod || "Cash",
+                    method: p.paymentMethod || "",
                     loanIndex: item.originalIndex,
                     paymentIndex
                 });
             });
         });
 
-        const progress = principal > 0 ? Math.min(100, (paid / principal) * 100) : 0;
+        const progress = principal > 0 ? Math.min(100, paid / principal * 100) : 0;
         const isRepaid = remaining <= 0.005;
         const isOverdue = !isRepaid && nextDueDate &&
             new Date(nextDueDate + "T23:59:59") < new Date();
 
-        let accountStatus = "Pending";
-        if (isRepaid) accountStatus = "Repaid";
-        else if (isOverdue) accountStatus = "Overdue";
-        else if (paid > 0) accountStatus = "Partially Paid";
+        let status = isRepaid ? "Repaid" :
+                    isOverdue ? "Overdue" :
+                    paid > 0 ? "Partially Paid" : "Pending";
 
         if (group.type === "Borrowed") totalBorrowedRemaining += remaining;
         else totalLentRemaining += remaining;
 
         transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let runningBalance = 0;
-        const transactionHtml = transactions.map(t => {
-            if (t.kind === "Borrowed" || t.kind === "Lent") {
-                runningBalance += t.amount;
-            } else {
-                runningBalance -= t.amount;
-            }
-
-            const canEdit = t.loanIndex !== undefined;
-            return `
-                <div class="history-item" style="align-items:flex-start;gap:8px;">
-                    <span>
-                        📅 ${formatLoanDate(t.date)}
-                        <strong style="margin-left:5px;">${t.kind}</strong>
-                        <span style="margin-left:5px;">৳${t.amount.toFixed(2)}</span>
-                        ${t.paymentMethod ? ` · ${t.paymentMethod}` : ""}
-                        ${t.description ? ` · <em>${t.description}</em>` : ""}
-                    </span>
-                    <span style="white-space:nowrap;">
-                        ${canEdit ? `
-                            <button class="btn-action btn-edit" onclick="editLoanPayment(${t.loanIndex}, ${t.paymentIndex})">Edit</button>
-                            <button class="btn-action btn-delete" onclick="deleteLoanPayment(${t.loanIndex}, ${t.paymentIndex})">Delete</button>
-                        ` : ""}
-                    </span>
-                </div>
-            `;
-        }).join("");
-
-        const balanceColor = group.type === "Lent" ? "var(--primary)" : "var(--danger)";
-        const accountLabel = group.type === "Lent" ? "To Receive" : "To Pay";
+        const statementRows = transactions.map(t => `
+            <div class="history-item" style="align-items:flex-start;gap:8px;">
+                <span>
+                    📅 ${formatLoanDate(t.date)}
+                    <strong>${t.kind}</strong>
+                    — ৳${t.amount.toFixed(2)}
+                    ${t.method ? ` · ${t.method}` : ""}
+                    ${t.description ? ` · ${t.description}` : ""}
+                </span>
+            </div>
+        `).join("");
 
         const card = document.createElement("div");
         card.className = "person-loan-card";
@@ -1981,20 +1957,20 @@ function renderLoans() {
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <h3 style="margin:0;font-size:20px;color:var(--primary);">👤 ${group.displayName}</h3>
                         <span class="badge ${group.type === "Lent" ? "badge-lent" : "badge-borrowed"}">${group.type}</span>
-                        ${loanStatusBadge(accountStatus)}
+                        ${loanStatusBadge(status)}
                     </div>
-
-                    <div class="loan-meta" style="margin-top:8px;">
+                    <div class="loan-meta">
                         <span>📄 ${group.items.length} loan record${group.items.length !== 1 ? "s" : ""}</span>
                         <span>💵 ${paymentCount} payment${paymentCount !== 1 ? "s" : ""}</span>
-                        ${lastPaymentDate ? `<span>Last payment: ${formatLoanDate(lastPaymentDate)}</span>` : ""}
-                        ${nextDueDate && !isRepaid ? `<span class="${isOverdue ? "loan-overdue" : ""}">${isOverdue ? "⚠ Overdue" : "📅 Next due"}: ${formatLoanDate(nextDueDate)}</span>` : ""}
+                        ${lastPaymentDate ? `<span>Last: ${formatLoanDate(lastPaymentDate)}</span>` : ""}
+                        ${nextDueDate && !isRepaid ? `<span class="${isOverdue ? "loan-overdue" : ""}">${isOverdue ? "⚠ Overdue" : "📅 Due"}: ${formatLoanDate(nextDueDate)}</span>` : ""}
                     </div>
                 </div>
-
-                <div style="text-align:right;min-width:180px;">
-                    <div style="font-size:12px;color:var(--text-muted);">${accountLabel}</div>
-                    <div style="font-size:22px;font-weight:800;color:${balanceColor};">
+                <div style="text-align:right;min-width:170px;">
+                    <div style="font-size:12px;color:var(--text-muted);">
+                        ${group.type === "Lent" ? "To Receive" : "To Pay"}
+                    </div>
+                    <div style="font-size:22px;font-weight:800;color:${group.type === "Lent" ? "var(--primary)" : "var(--danger)"};">
                         ৳${remaining.toFixed(2)}
                     </div>
                 </div>
@@ -2015,26 +1991,45 @@ function renderLoans() {
                 </div>
             </div>
 
-            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;">
-                ${remaining > 0 ? `<button class="btn-action btn-pay" onclick="recordPersonPayment(${JSON.stringify(group.groupKey)})">💵 Record Payment</button>` : ""}
-                <button class="btn-action btn-history" onclick="showPersonStatement(${JSON.stringify(group.groupKey)})">📜 Account Statement</button>
-            </div>
+            <div class="person-loan-actions" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;"></div>
 
-            <div class="history-box" id="person-history-${group.groupKey}" style="display:none;margin-top:15px;">
+            <div class="history-box person-statement-box" style="display:none;margin-top:15px;">
                 <strong style="display:block;margin-bottom:8px;color:var(--text-dark);">
                     ${group.displayName} — Account Statement
                 </strong>
-                ${transactionHtml || '<div style="color:var(--text-muted);">No transactions recorded.</div>'}
+                ${statementRows || '<div style="color:var(--text-muted);">No transactions recorded.</div>'}
             </div>
         `;
+
+        const actions = card.querySelector(".person-loan-actions");
+
+        if (remaining > 0) {
+            const payBtn = document.createElement("button");
+            payBtn.type = "button";
+            payBtn.className = "btn-action btn-pay";
+            payBtn.textContent = "💵 Record Payment";
+            payBtn.addEventListener("click", () => recordPersonPayment(group.groupKey));
+            actions.appendChild(payBtn);
+        }
+
+        const statementBtn = document.createElement("button");
+        statementBtn.type = "button";
+        statementBtn.className = "btn-action btn-history";
+        statementBtn.textContent = "📜 Account Statement";
+        statementBtn.addEventListener("click", () => {
+            const box = card.querySelector(".person-statement-box");
+            box.style.display = box.style.display === "none" ? "block" : "none";
+        });
+        actions.appendChild(statementBtn);
 
         container.appendChild(card);
     });
 
-    document.getElementById("pageTotalBorrowed").innerText = `৳${totalBorrowedRemaining.toFixed(2)}`;
-    document.getElementById("pageTotalLent").innerText = `৳${totalLentRemaining.toFixed(2)}`;
+    const borrowedEl = document.getElementById("pageTotalBorrowed");
+    const lentEl = document.getElementById("pageTotalLent");
+    if (borrowedEl) borrowedEl.innerText = `৳${totalBorrowedRemaining.toFixed(2)}`;
+    if (lentEl) lentEl.innerText = `৳${totalLentRemaining.toFixed(2)}`;
 }
-
 
 function getPersonLoanRecords(groupKey) {
     return loans
@@ -2065,8 +2060,7 @@ function recordPersonPayment(groupKey) {
     const type = records[0].item.type;
 
     const amountText = prompt(
-        `${person} (${type})\nRemaining balance: ৳${totalRemaining.toFixed(2)}\n\nEnter payment amount:`,
-        ""
+        `${person} (${type})\\nRemaining balance: ৳${totalRemaining.toFixed(2)}\\n\\nEnter payment amount:`
     );
     if (amountText === null) return;
 
@@ -2075,7 +2069,6 @@ function recordPersonPayment(groupKey) {
         alert("Please enter a valid payment amount.");
         return;
     }
-
     if (amount > totalRemaining + 0.005) {
         alert(`Payment cannot exceed ৳${totalRemaining.toFixed(2)}.`);
         return;
@@ -2083,25 +2076,18 @@ function recordPersonPayment(groupKey) {
 
     const date = prompt(
         "Payment date (YYYY-MM-DD):",
-        new Date().toISOString().split("T")[0]
+        new Date().toISOString().slice(0, 10)
     );
-    if (date === null) return;
+    if (date === null || !date.trim()) return;
 
-    const method = prompt(
-        "Payment method:",
-        "Cash"
-    );
+    const method = prompt("Payment method:", "Cash");
     if (method === null) return;
 
-    const description = prompt(
-        "Description (optional):",
-        "Repayment"
-    );
+    const description = prompt("Description (optional):", "Repayment");
     if (description === null) return;
 
     let left = amount;
 
-    // Allocate payment to oldest unpaid loan first.
     records.forEach(x => {
         if (left <= 0.005) return;
 
@@ -2110,13 +2096,16 @@ function recordPersonPayment(groupKey) {
 
         if (remaining > 0.005) {
             const allocation = Math.min(left, remaining);
+            if (!Array.isArray(item.payments)) item.payments = [];
+
             item.payments.push({
                 id: "PM-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
-                date: date,
+                date: date.trim(),
                 amount: Number(allocation.toFixed(2)),
                 paymentMethod: method.trim() || "Cash",
                 description: description.trim() || "Repayment"
             });
+
             left -= allocation;
         }
     });
