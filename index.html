@@ -2016,8 +2016,8 @@ function renderLoans() {
             </div>
 
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;">
-                ${remaining > 0 ? `<button class="btn-action btn-pay" onclick="openGroupPaymentModal('${group.groupKey}')">💵 Record Payment</button>` : ""}
-                <button class="btn-action btn-history" onclick="togglePersonHistory('${group.groupKey}')">📜 Account Statement</button>
+                ${remaining > 0 ? `<button class="btn-action btn-pay" onclick="recordPersonPayment(${JSON.stringify(group.groupKey)})">💵 Record Payment</button>` : ""}
+                <button class="btn-action btn-history" onclick="showPersonStatement(${JSON.stringify(group.groupKey)})">📜 Account Statement</button>
             </div>
 
             <div class="history-box" id="person-history-${group.groupKey}" style="display:none;margin-top:15px;">
@@ -2033,6 +2033,158 @@ function renderLoans() {
 
     document.getElementById("pageTotalBorrowed").innerText = `৳${totalBorrowedRemaining.toFixed(2)}`;
     document.getElementById("pageTotalLent").innerText = `৳${totalLentRemaining.toFixed(2)}`;
+}
+
+
+function getPersonLoanRecords(groupKey) {
+    return loans
+        .map((item, index) => ({ item, index }))
+        .filter(x => getLoanGroupKey(x.item) === groupKey)
+        .sort((a, b) => new Date(a.item.date) - new Date(b.item.date));
+}
+
+function recordPersonPayment(groupKey) {
+    const records = getPersonLoanRecords(groupKey);
+    if (!records.length) {
+        alert("No loan account found for this person.");
+        return;
+    }
+
+    let totalRemaining = 0;
+    records.forEach(x => {
+        if (!Array.isArray(x.item.payments)) x.item.payments = [];
+        totalRemaining += getLoanSummary(x.item).remaining;
+    });
+
+    if (totalRemaining <= 0.005) {
+        alert("This account is already fully settled.");
+        return;
+    }
+
+    const person = records[0].item.person;
+    const type = records[0].item.type;
+
+    const amountText = prompt(
+        `${person} (${type})\nRemaining balance: ৳${totalRemaining.toFixed(2)}\n\nEnter payment amount:`,
+        ""
+    );
+    if (amountText === null) return;
+
+    const amount = parseFloat(amountText);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        alert("Please enter a valid payment amount.");
+        return;
+    }
+
+    if (amount > totalRemaining + 0.005) {
+        alert(`Payment cannot exceed ৳${totalRemaining.toFixed(2)}.`);
+        return;
+    }
+
+    const date = prompt(
+        "Payment date (YYYY-MM-DD):",
+        new Date().toISOString().split("T")[0]
+    );
+    if (date === null) return;
+
+    const method = prompt(
+        "Payment method:",
+        "Cash"
+    );
+    if (method === null) return;
+
+    const description = prompt(
+        "Description (optional):",
+        "Repayment"
+    );
+    if (description === null) return;
+
+    let left = amount;
+
+    // Allocate payment to oldest unpaid loan first.
+    records.forEach(x => {
+        if (left <= 0.005) return;
+
+        const item = x.item;
+        const remaining = getLoanSummary(item).remaining;
+
+        if (remaining > 0.005) {
+            const allocation = Math.min(left, remaining);
+            item.payments.push({
+                id: "PM-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+                date: date,
+                amount: Number(allocation.toFixed(2)),
+                paymentMethod: method.trim() || "Cash",
+                description: description.trim() || "Repayment"
+            });
+            left -= allocation;
+        }
+    });
+
+    saveUserData();
+    renderLoans();
+
+    alert(`Payment of ৳${amount.toFixed(2)} recorded successfully.`);
+}
+
+function showPersonStatement(groupKey) {
+    const records = getPersonLoanRecords(groupKey);
+    if (!records.length) {
+        alert("No loan account found.");
+        return;
+    }
+
+    const person = records[0].item.person;
+    const type = records[0].item.type;
+
+    let principal = 0;
+    let paid = 0;
+    let rows = [];
+
+    records.forEach(x => {
+        const item = x.item;
+        if (!Array.isArray(item.payments)) item.payments = [];
+
+        principal += Number(item.amount) || 0;
+
+        rows.push({
+            date: item.date,
+            type: type === "Borrowed" ? "Borrowed" : "Lent",
+            amount: Number(item.amount) || 0,
+            description: item.description || "Loan"
+        });
+
+        item.payments.forEach(p => {
+            paid += Number(p.amount) || 0;
+            rows.push({
+                date: p.date,
+                type: type === "Borrowed" ? "Repayment" : "Received",
+                amount: Number(p.amount) || 0,
+                description: p.description || "Payment",
+                method: p.paymentMethod || ""
+            });
+        });
+    });
+
+    rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const remaining = Math.max(0, principal - paid);
+
+    let text = `${person} — ${type}\n\n`;
+    text += `Principal: ৳${principal.toFixed(2)}\n`;
+    text += `Paid/Received: ৳${paid.toFixed(2)}\n`;
+    text += `Remaining: ৳${remaining.toFixed(2)}\n\n`;
+    text += `TRANSACTIONS\n`;
+    text += `------------------------------\n`;
+
+    rows.forEach(r => {
+        text += `${formatLoanDate(r.date)} | ${r.type} | ৳${r.amount.toFixed(2)}`;
+        if (r.method) text += ` | ${r.method}`;
+        if (r.description) text += ` | ${r.description}`;
+        text += "\n";
+    });
+
+    alert(text);
 }
 
 function renderChart() {
