@@ -644,12 +644,6 @@ th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
     color: var(--danger);
     font-weight:700;
 }
-.payment-row-actions {
-    display:flex;
-    gap:5px;
-    margin-top:4px;
-}
-
 
 .modal-overlay {
     position: fixed;
@@ -800,7 +794,6 @@ footer {
                     <div class="nav-menu-item" onclick="switchViewFromNav('expensesView', this)">📉 Manage Expenses</div>
                     <div class="nav-menu-item" onclick="switchViewFromNav('incomeView', this)">💵 Manage Income</div>
                     <div class="nav-menu-item" onclick="switchViewFromNav('loansView', this)">🏦 Manage Loans</div>
-                    <!--div class="nav-menu-item" onclick="switchViewFromNav('profileView', this)">✏️ Edit Profile</div-->
                     <div class="nav-menu-item" onclick="switchViewFromNav('aboutView', this)">ℹ️ About Application</div>
                 </div>
             </div>
@@ -830,7 +823,7 @@ footer {
                     <div class="card-top">
                         <h4>Income This Month</h4>
                         <div class="card-icon">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                         </div>
                     </div>
                     <h2 id="currMonthIncome">৳0.00</h2>
@@ -840,7 +833,7 @@ footer {
                     <div class="card-top">
                         <h4>Expense This Month</h4>
                         <div class="card-icon">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
                         </div>
                     </div>
                     <h2 id="currMonthExpense">৳0.00</h2>
@@ -850,7 +843,7 @@ footer {
                     <div class="card-top">
                         <h4>Balance This Month</h4>
                         <div class="card-icon">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                         </div>
                     </div>
                     <h2 id="currMonthBalance">৳0.00</h2>
@@ -860,7 +853,7 @@ footer {
                     <div class="card-top">
                         <h4>Previous Expense</h4>
                         <div class="card-icon">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                     </div>
                     <h2 id="prevMonthExpense">৳0.00</h2>
@@ -1187,45 +1180,7 @@ footer {
     </main>
 </div>
 
-<!-- SINGLE RECORD LOAN PAYMENT MODAL -->
-<div class="modal-overlay" id="paymentModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3>💵 Record Loan Payment</h3>
-            <span class="close-modal" onclick="closeModal('paymentModal')">&times;</span>
-        </div>
-        <div id="paymentModalInfo" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);"></div>
-        <form onsubmit="handlePaymentSubmit(event)">
-            <div class="form-group">
-                <label>Payment Date</label>
-                <input type="date" id="payDate" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Payment Amount (৳)</label>
-                <input type="number" id="payAmount" class="form-control" placeholder="0.00" step="0.01" min="0.01" required>
-            </div>
-            <div class="form-group">
-                <label>Payment Method</label>
-                <select id="payMethod" class="form-control">
-                    <option>Cash</option>
-                    <option>Bkash</option>
-                    <option>Nagad</option>
-                    <option>Bank Transfer</option>
-                    <option>Card</option>
-                    <option>Other</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Description</label>
-                <input type="text" id="payDesc" class="form-control" placeholder="e.g. Partial repayment">
-            </div>
-            <button type="submit" class="btn">Submit Repayment</button>
-        </form>
-    </div>
-</div>
-
 <script>
-// --- CONFIGURE GOOGLE SHEETS SCRIPT URL HERE ---
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdlTI-NxQEATZ2vq0n6aAGN7ZAd3etx21u_gGwbT9O8DJ2Pwj0Q62ixWBGRLF2YyfUwQ/exec";
 
 let users = JSON.parse(localStorage.getItem("users")) || [
@@ -1239,8 +1194,27 @@ let incomes = [];
 let loans = [];
 let editingIndex = -1;
 let editingIncomeIndex = -1;
-let activePayGroupKey = null;
 let chartInstance = null;
+
+/**
+ * HELPER: Normalizes any date input string to an exact YYYY-MM-DD local format string
+ * This eliminates Google Apps Script GMT UTC date shifts.
+ */
+function cleanDateStr(dateStr) {
+    if (!dateStr) return "";
+    let str = String(dateStr).trim();
+    if (str.includes("T")) {
+        str = str.split("T")[0];
+    }
+    const d = new Date(str + "T00:00:00");
+    if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+    return str.slice(0, 10);
+}
 
 window.onload = function() {
     localStorage.setItem("users", JSON.stringify(users));
@@ -1259,15 +1233,22 @@ async function loadUserData() {
     try {
         const res = await fetch(`${SCRIPT_URL}?action=getData&username=${encodeURIComponent(currentUser)}`);
         const data = await res.json();
-        expenses = data.expenses || [];
-        incomes = data.incomes || [];
+        
+        // Clean incoming dates to enforce local timezone matching
+        expenses = (data.expenses || []).map(e => ({ ...e, date: cleanDateStr(e.date) }));
+        incomes = (data.incomes || []).map(i => ({ ...i, date: cleanDateStr(i.date) }));
         loans = (data.loans || []).map(item => ({
             ...item,
+            date: cleanDateStr(item.date),
+            dueDate: cleanDateStr(item.dueDate),
             id: item.id || ("LN-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7)),
-            dueDate: item.dueDate || "",
             notes: item.notes || "",
-            payments: Array.isArray(item.payments) ? item.payments : []
+            payments: (Array.isArray(item.payments) ? item.payments : []).map(p => ({
+                ...p,
+                date: cleanDateStr(p.date)
+            }))
         }));
+        
         renderDashboard();
     } catch(err) {
         console.error("Cloud Fetch Error:", err);
@@ -1314,15 +1295,13 @@ document.addEventListener("click", function(e) {
 function toggleNavMenu(e) {
     e.stopPropagation();
     document.getElementById("userDropdownMenu").classList.remove("show");
-    const navDropdown = document.getElementById("navMenuDropdown");
-    navDropdown.classList.toggle("show");
+    document.getElementById("navMenuDropdown").classList.toggle("show");
 }
 
 function toggleUserDropdown(e) {
     e.stopPropagation();
     document.getElementById("navMenuDropdown").classList.remove("show");
-    const userDropdown = document.getElementById("userDropdownMenu");
-    userDropdown.classList.toggle("show");
+    document.getElementById("userDropdownMenu").classList.toggle("show");
 }
 
 function switchAuth(type) {
@@ -1429,7 +1408,7 @@ function calculateMonthlyMetrics() {
     let currIncTotal = 0;
 
     expenses.forEach(exp => {
-        const d = new Date(exp.date);
+        const d = new Date(exp.date + "T00:00:00");
         if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
             currExpTotal += exp.amount;
         }
@@ -1439,7 +1418,7 @@ function calculateMonthlyMetrics() {
     });
 
     incomes.forEach(inc => {
-        const d = new Date(inc.date);
+        const d = new Date(inc.date + "T00:00:00");
         if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
             currIncTotal += inc.amount;
         }
@@ -1485,7 +1464,7 @@ function deleteExpense(index) {
 function handleExpenseSubmit(e) {
     e.preventDefault();
     const expData = {
-        date: document.getElementById("mExpDate").value,
+        date: cleanDateStr(document.getElementById("mExpDate").value),
         category: document.getElementById("mExpCategory").value,
         description: document.getElementById("mExpDesc").value,
         amount: parseFloat(document.getElementById("mExpAmount").value)
@@ -1504,7 +1483,7 @@ function handleExpenseSubmit(e) {
 }
 
 function renderExpenses() {
-    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    expenses.sort((a, b) => new Date(b.date + "T00:00:00") - new Date(a.date + "T00:00:00"));
     const tbody = document.getElementById("modalExpenseTableBody");
     if(!tbody) return;
     tbody.innerHTML = "";
@@ -1532,7 +1511,7 @@ function renderExpenses() {
 function handleIncomeSubmit(e) {
     e.preventDefault();
     const incData = {
-        date: document.getElementById("incDate").value,
+        date: cleanDateStr(document.getElementById("incDate").value),
         source: document.getElementById("incSource").value,
         description: document.getElementById("incDesc").value,
         amount: parseFloat(document.getElementById("incAmount").value)
@@ -1570,7 +1549,7 @@ function resetIncomeForm() {
 }
 
 function renderIncomes() {
-    incomes.sort((a, b) => new Date(b.date) - new Date(a.date));
+    incomes.sort((a, b) => new Date(b.date + "T00:00:00") - new Date(a.date + "T00:00:00"));
     const tbody = document.getElementById("incomeTableBody");
     tbody.innerHTML = "";
     
@@ -1615,12 +1594,12 @@ function handleLoanSubmit(e) {
 
     const loanData = {
         id: "LN-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
-        date: document.getElementById("loanDate").value,
+        date: cleanDateStr(document.getElementById("loanDate").value),
         person: document.getElementById("loanPerson").value.trim(),
         type: document.getElementById("loanType").value,
         description: document.getElementById("loanDesc").value.trim(),
         amount,
-        dueDate: document.getElementById("loanDueDate").value || "",
+        dueDate: cleanDateStr(document.getElementById("loanDueDate").value),
         notes: document.getElementById("loanNotes").value.trim(),
         payments: []
     };
@@ -1676,19 +1655,6 @@ function updateLoanPersonDropdown() {
     if (!select) return;
 
     const uniquePersons = Array.from(new Set(loans.map(l => l.person.trim()))).sort();
-    let html = '<option value="All">All Entities</option>';
-    uniquePersons.forEach(person => {
-        html += `<option value="${person}">${person}</option>`;
-    });
-    select.innerHTML = html;
-}
-
-function updateLoanPersonDropdown() {
-    const select = document.getElementById("loanReportPerson");
-    if (!select) return;
-
-    const uniquePersons = Array.from(new Set(loans.map(l => l.person.trim()))).sort();
-    
     let html = '<option value="All">All Entities</option>';
     uniquePersons.forEach(person => {
         html += `<option value="${person}">${person}</option>`;
@@ -1876,7 +1842,7 @@ function renderLoans() {
     });
 
     Object.values(groupedLoans).forEach(group => {
-        group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
+        group.items.sort((a, b) => new Date(a.date + "T00:00:00") - new Date(b.date + "T00:00:00"));
 
         let principal = 0, paid = 0, remaining = 0;
         let paymentCount = 0, lastPaymentDate = "", nextDueDate = "";
@@ -1898,14 +1864,14 @@ function renderLoans() {
             });
 
             if (item.dueDate && summary.remaining > 0) {
-                if (!nextDueDate || new Date(item.dueDate) < new Date(nextDueDate)) {
+                if (!nextDueDate || new Date(item.dueDate + "T00:00:00") < new Date(nextDueDate + "T00:00:00")) {
                     nextDueDate = item.dueDate;
                 }
             }
 
             item.payments.forEach((p, paymentIndex) => {
                 paymentCount++;
-                if (!lastPaymentDate || new Date(p.date) > new Date(lastPaymentDate)) {
+                if (!lastPaymentDate || new Date(p.date + "T00:00:00") > new Date(lastPaymentDate + "T00:00:00")) {
                     lastPaymentDate = p.date;
                 }
                 transactions.push({
@@ -1922,8 +1888,7 @@ function renderLoans() {
 
         const progress = principal > 0 ? Math.min(100, paid / principal * 100) : 0;
         const isRepaid = remaining <= 0.005;
-        const isOverdue = !isRepaid && nextDueDate &&
-            new Date(nextDueDate + "T23:59:59") < new Date();
+        const isOverdue = !isRepaid && nextDueDate && new Date(nextDueDate + "T23:59:59") < new Date();
 
         let status = isRepaid ? "Repaid" :
                     isOverdue ? "Overdue" :
@@ -1932,7 +1897,7 @@ function renderLoans() {
         if (group.type === "Borrowed") totalBorrowedRemaining += remaining;
         else totalLentRemaining += remaining;
 
-        transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+        transactions.sort((a, b) => new Date(a.date + "T00:00:00") - new Date(b.date + "T00:00:00"));
 
         const statementRows = transactions.map(t => `
             <div class="history-item" style="align-items:flex-start;gap:8px;">
@@ -2035,7 +2000,7 @@ function getPersonLoanRecords(groupKey) {
     return loans
         .map((item, index) => ({ item, index }))
         .filter(x => getLoanGroupKey(x.item) === groupKey)
-        .sort((a, b) => new Date(a.item.date) - new Date(b.item.date));
+        .sort((a, b) => new Date(a.item.date + "T00:00:00") - new Date(b.item.date + "T00:00:00"));
 }
 
 function recordPersonPayment(groupKey) {
@@ -2060,7 +2025,7 @@ function recordPersonPayment(groupKey) {
     const type = records[0].item.type;
 
     const amountText = prompt(
-        `${person} (${type})\\nRemaining balance: ৳${totalRemaining.toFixed(2)}\\n\\nEnter payment amount:`
+        `${person} (${type})\nRemaining balance: ৳${totalRemaining.toFixed(2)}\n\nEnter payment amount:`
     );
     if (amountText === null) return;
 
@@ -2074,11 +2039,12 @@ function recordPersonPayment(groupKey) {
         return;
     }
 
-    const date = prompt(
+    const rawDate = prompt(
         "Payment date (YYYY-MM-DD):",
         new Date().toISOString().slice(0, 10)
     );
-    if (date === null || !date.trim()) return;
+    if (rawDate === null || !rawDate.trim()) return;
+    const date = cleanDateStr(rawDate);
 
     const method = prompt("Payment method:", "Cash");
     if (method === null) return;
@@ -2100,7 +2066,7 @@ function recordPersonPayment(groupKey) {
 
             item.payments.push({
                 id: "PM-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
-                date: date.trim(),
+                date: date,
                 amount: Number(allocation.toFixed(2)),
                 paymentMethod: method.trim() || "Cash",
                 description: description.trim() || "Repayment"
@@ -2116,66 +2082,6 @@ function recordPersonPayment(groupKey) {
     alert(`Payment of ৳${amount.toFixed(2)} recorded successfully.`);
 }
 
-function showPersonStatement(groupKey) {
-    const records = getPersonLoanRecords(groupKey);
-    if (!records.length) {
-        alert("No loan account found.");
-        return;
-    }
-
-    const person = records[0].item.person;
-    const type = records[0].item.type;
-
-    let principal = 0;
-    let paid = 0;
-    let rows = [];
-
-    records.forEach(x => {
-        const item = x.item;
-        if (!Array.isArray(item.payments)) item.payments = [];
-
-        principal += Number(item.amount) || 0;
-
-        rows.push({
-            date: item.date,
-            type: type === "Borrowed" ? "Borrowed" : "Lent",
-            amount: Number(item.amount) || 0,
-            description: item.description || "Loan"
-        });
-
-        item.payments.forEach(p => {
-            paid += Number(p.amount) || 0;
-            rows.push({
-                date: p.date,
-                type: type === "Borrowed" ? "Repayment" : "Received",
-                amount: Number(p.amount) || 0,
-                description: p.description || "Payment",
-                method: p.paymentMethod || ""
-            });
-        });
-    });
-
-    rows.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    const remaining = Math.max(0, principal - paid);
-
-    let text = `${person} — ${type}\n\n`;
-    text += `Principal: ৳${principal.toFixed(2)}\n`;
-    text += `Paid/Received: ৳${paid.toFixed(2)}\n`;
-    text += `Remaining: ৳${remaining.toFixed(2)}\n\n`;
-    text += `TRANSACTIONS\n`;
-    text += `------------------------------\n`;
-
-    rows.forEach(r => {
-        text += `${formatLoanDate(r.date)} | ${r.type} | ৳${r.amount.toFixed(2)}`;
-        if (r.method) text += ` | ${r.method}`;
-        if (r.description) text += ` | ${r.description}`;
-        text += "\n";
-    });
-
-    alert(text);
-}
-
 function renderChart() {
     const now = new Date();
     const cMonth = now.getMonth();
@@ -2184,7 +2090,7 @@ function renderChart() {
     const catTotals = {};
 
     expenses.forEach(exp => {
-        const d = new Date(exp.date);
+        const d = new Date(exp.date + "T00:00:00");
         if (d.getMonth() === cMonth && d.getFullYear() === cYear) {
             catTotals[exp.category] = (catTotals[exp.category] || 0) + exp.amount;
         }
@@ -2384,13 +2290,6 @@ function handleProfileUpdate(e) {
         
         localStorage.setItem("users", JSON.stringify(users));
         alert("Profile details updated successfully.");
-    }
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = "none";
-    if(modalId === 'paymentModal') {
-        activePayGroupKey = null;
     }
 }
 
