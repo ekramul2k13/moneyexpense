@@ -1269,12 +1269,16 @@ async function saveUserData() {
             loans: loans
         });
 
-        // Use URLSearchParams to prevent CORS preflight restrictions on Google Apps Script Web Apps
+        const formData = new URLSearchParams();
+        formData.append("payload", payloadData);
+
         await fetch(SCRIPT_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ payload: payloadData })
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: formData.toString()
         });
     } catch(err) {
         console.error("Cloud Sync Error:", err);
