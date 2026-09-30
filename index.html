@@ -645,6 +645,37 @@ th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
     font-weight:700;
 }
 
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 600;
+    padding: 16px;
+}
+
+.modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 450px;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
+.close-modal { cursor: pointer; font-size: 26px; color: var(--text-muted); line-height: 1; }
+
 .page-summary-bar {
     display: flex;
     justify-content: space-between;
@@ -838,13 +869,19 @@ footer {
                     </div>
                 </div>
                 <div class="report-box">
-                    <h3>Monthly Report Generator</h3>
-                    <div class="report-inputs-grid">
+                    <h3>Category-Wise Report Generator</h3>
+                    <div class="report-inputs-grid" style="grid-template-columns: 1fr 1fr 1fr;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label style="text-align: left;">Report Type</label>
-                            <select id="reportType" class="form-control">
+                            <select id="reportType" class="form-control" onchange="updateReportCategoryDropdown()">
                                 <option value="expense">Expense Report</option>
                                 <option value="income">Income Report</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="text-align: left;">Category / Source</label>
+                            <select id="reportCategory" class="form-control">
+                                <option value="All">All Categories</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
@@ -856,7 +893,7 @@ footer {
                         <button class="btn" onclick="generateMonthlyReport()">Calculate</button>
                         <button class="btn btn-secondary" onclick="exportPDFReport()">Export PDF</button>
                     </div>
-                    <h2 id="reportOutput" style="color: var(--primary); margin-top: 10px; font-size: 20px;">৳0.00</h2>
+                    <div id="reportOutput" style="color: var(--primary); margin-top: 10px; font-size: 16px; font-weight: 700;">৳0.00</div>
                 </div>
             </div>
         </section>
@@ -904,7 +941,6 @@ footer {
                     </div>
                 </div>
             </form>
-
             <div class="table-container">
                 <table>
                     <thead>
@@ -918,26 +954,6 @@ footer {
                     </thead>
                     <tbody id="modalExpenseTableBody"></tbody>
                 </table>
-            </div>
-
-            <!-- CATEGORY-WISE BREAKDOWN TABLE REPORT -->
-            <div class="report-box" style="margin-top: 28px; text-align: left;">
-                <h3 style="margin-bottom: 14px; color: var(--primary); text-align: left; font-size: 18px;">📊 Category-Wise Expense Report</h3>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Category Name</th>
-                                <th>Total Amount (৳)</th>
-                                <th>Share (% of Total)</th>
-                                <th>Transactions Count</th>
-                            </tr>
-                        </thead>
-                        <tbody id="categoryReportTableBody">
-                            <!-- Populated dynamically via JS -->
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </section>
 
@@ -1154,10 +1170,9 @@ footer {
                     <li>Google Sheets cloud persistence sync</li>
                     <li>Separated Borrowed & Lent controls per person</li>
                     <li>Expense, Income & Debt modules</li>
-                    <li>Category-wise spending breakdown</li>
                     <li>Partial loan repayments with full audit history</li>
                     <li>Interactive category chart analytics</li>
-                    <li>Monthly summary & PDF export</li>
+                    <li>Category-wise monthly summary & PDF export</li>
                 </ul>
                 <p style="margin-bottom: 0; color: var(--text-muted); font-size: 12px;">
                     Developed by <strong>Ekramul Haque</strong><br>© 2026 All Rights Reserved.
@@ -1171,6 +1186,7 @@ footer {
     </main>
 </div>
 
+    
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypKUwAZozQmKP3yI9E9HuKSxJxV5ADBJ2sAIRx6xL-QCy4bpU7cWSp8xFeW7A__gVc/exec";
 
@@ -1187,6 +1203,10 @@ let editingIndex = -1;
 let editingIncomeIndex = -1;
 let chartInstance = null;
 
+/**
+ * HELPER: Normalizes any date input string to an exact YYYY-MM-DD local format string
+ * This eliminates Google Apps Script GMT UTC date shifts.
+ */
 function cleanDateStr(dateStr) {
     if (!dateStr) return "";
     let str = String(dateStr).trim();
@@ -1221,6 +1241,7 @@ async function loadUserData() {
         const res = await fetch(`${SCRIPT_URL}?action=getData&username=${encodeURIComponent(currentUser)}`);
         const data = await res.json();
         
+        // Clean incoming dates to enforce local timezone matching
         expenses = (data.expenses || []).map(e => ({ ...e, date: cleanDateStr(e.date) }));
         incomes = (data.incomes || []).map(i => ({ ...i, date: cleanDateStr(i.date) }));
         loans = (data.loans || []).map(item => ({
@@ -1236,7 +1257,6 @@ async function loadUserData() {
         }));
         
         renderDashboard();
-        renderExpenses();
     } catch(err) {
         console.error("Cloud Fetch Error:", err);
     } finally {
@@ -1357,6 +1377,7 @@ function initDashboard() {
     document.getElementById("topHeaderUsername").innerText = currentUser;
     loadUserData();
     loadProfileFields();
+    updateReportCategoryDropdown();
 }
 
 function switchViewFromNav(viewId, element) {
@@ -1383,6 +1404,7 @@ function switchViewFromHeader(viewId) {
 function renderDashboard() {
     calculateMonthlyMetrics();
     renderChart();
+    updateReportCategoryDropdown();
 }
 
 function calculateMonthlyMetrics() {
@@ -1421,6 +1443,197 @@ function calculateMonthlyMetrics() {
     document.getElementById("currMonthExpense").innerText = `৳${currExpTotal.toFixed(2)}`;
     document.getElementById("currMonthBalance").innerText = `৳${netBalance.toFixed(2)}`;
     document.getElementById("prevMonthExpense").innerText = `৳${prevExpTotal.toFixed(2)}`;
+}
+
+function updateReportCategoryDropdown() {
+    const reportType = document.getElementById("reportType").value;
+    const catSelect = document.getElementById("reportCategory");
+    if (!catSelect) return;
+
+    let optionsHtml = '<option value="All">All Categories</option>';
+
+    if (reportType === 'expense') {
+        const expSelect = document.getElementById("mExpCategory");
+        if (expSelect) {
+            Array.from(expSelect.options).forEach(opt => {
+                if (opt.value) optionsHtml += `<option value="${opt.value}">${opt.value}</option>`;
+            });
+        }
+    } else {
+        const incSelect = document.getElementById("incSource");
+        if (incSelect) {
+            Array.from(incSelect.options).forEach(opt => {
+                if (opt.value) optionsHtml += `<option value="${opt.value}">${opt.value}</option>`;
+            });
+        }
+    }
+    catSelect.innerHTML = optionsHtml;
+}
+
+function generateMonthlyReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    const selectedCategory = document.getElementById("reportCategory").value;
+
+    if (!selected) return alert("Select a target month first.");
+
+    const isExpense = reportType === 'expense';
+    const dataset = isExpense ? expenses : incomes;
+
+    const filtered = dataset.filter(item => {
+        const matchesMonth = item.date.startsWith(selected);
+        const itemCat = isExpense ? item.category : item.source;
+        const matchesCat = (selectedCategory === "All") || (itemCat === selectedCategory);
+        return matchesMonth && matchesCat;
+    });
+
+    const formattedMonth = formatMonthYear(selected);
+    const typeLabel = isExpense ? 'Expense' : 'Income';
+
+    if (selectedCategory === "All") {
+        const catTotals = {};
+        let total = 0;
+
+        filtered.forEach(item => {
+            const cat = isExpense ? item.category : item.source;
+            catTotals[cat] = (catTotals[cat] || 0) + item.amount;
+            total += item.amount;
+        });
+
+        let breakdownText = `<div style="margin-bottom:8px; color:var(--text-dark);">${formattedMonth} ${typeLabel} Total: <strong>৳${total.toFixed(2)}</strong></div>`;
+        if (Object.keys(catTotals).length > 0) {
+            breakdownText += `<div style="font-size:13px; font-weight:normal; text-align:left; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">`;
+            for (const [cat, amt] of Object.entries(catTotals)) {
+                breakdownText += `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${cat}:</span><strong>৳${amt.toFixed(2)}</strong></div>`;
+            }
+            breakdownText += `</div>`;
+        } else {
+            breakdownText += `<div style="font-size:13px; color:var(--text-muted); font-weight:normal;">No records found.</div>`;
+        }
+
+        document.getElementById("reportOutput").innerHTML = breakdownText;
+    } else {
+        const total = filtered.reduce((sum, item) => sum + item.amount, 0);
+        document.getElementById("reportOutput").innerHTML = `
+            <div>${formattedMonth} ${typeLabel}</div>
+            <div style="font-size:14px; color:var(--text-muted); font-weight:600;">Category: ${selectedCategory}</div>
+            <div style="font-size:22px; color:var(--primary); margin-top:4px;">৳${total.toFixed(2)}</div>
+        `;
+    }
+}
+
+function exportPDFReport() {
+    const selected = document.getElementById("reportMonth").value;
+    const reportType = document.getElementById("reportType").value;
+    const selectedCategory = document.getElementById("reportCategory").value;
+
+    if (!selected) return alert("Select a month to export.");
+
+    const formattedMonth = formatMonthYear(selected);
+    const isExpense = reportType === 'expense';
+    const dataset = isExpense ? expenses : incomes;
+
+    const filtered = dataset.filter(item => {
+        const matchesMonth = item.date.startsWith(selected);
+        const itemCat = isExpense ? item.category : item.source;
+        const matchesCat = (selectedCategory === "All") || (itemCat === selectedCategory);
+        return matchesMonth && matchesCat;
+    });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const userObj = users.find(u => u.username === currentUser) || { name: currentUser };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(37, 99, 235);
+    doc.text(isExpense ? "Category Expense Statement" : "Category Income Statement", 14, 20);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Report Period: ${formattedMonth} | Filter: ${selectedCategory === 'All' ? 'All Categories' : selectedCategory}`, 14, 26);
+    doc.text(`Generated For: ${userObj.name}`, 14, 31);
+
+    let y = 42;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y - 5, 182, 8, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59);
+    
+    doc.text("Date", 16, y);
+    doc.text(isExpense ? "Category" : "Source", 52, y);
+    doc.text("Description", 100, y);
+    doc.text("Amount (BDT)", 165, y);
+
+    y += 4;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    let subtotal = 0;
+    doc.setFont("helvetica", "normal");
+    
+    if (filtered.length === 0) {
+        y += 10;
+        doc.setTextColor(100, 116, 139);
+        doc.text("No matching records found for selected period & category.", 14, y);
+    } else {
+        filtered.forEach(item => {
+            y += 8;
+            if (y > 265) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.setTextColor(30, 41, 59);
+            doc.text(item.date, 16, y);
+            doc.text(isExpense ? item.category : item.source, 52, y);
+            doc.text((item.description || '').substring(0, 25), 100, y);
+            
+            const amtText = `Tk ${item.amount.toFixed(2)}`;
+            doc.text(amtText, 195 - doc.getTextWidth(amtText), y);
+            
+            subtotal += item.amount;
+        });
+    }
+
+    y += 6;
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, y, 196, y);
+
+    y += 10;
+    if (y > 265) {
+        doc.addPage();
+        y = 20;
+    }
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Total ${isExpense ? 'Expenses' : 'Income'} (${selectedCategory}):`, 100, y);
+    
+    const finalTotalText = `Tk ${subtotal.toFixed(2)}`;
+    doc.setTextColor(isExpense ? 220 : 16, isExpense ? 38 : 185, isExpense ? 38 : 129);
+    doc.text(finalTotalText, 195 - doc.getTextWidth(finalTotalText), y);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 280, 196, 280);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        
+        doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
+    }
+
+    doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selectedCategory}_${selected}.pdf`);
 }
 
 function startEdit(index) {
@@ -1497,69 +1710,6 @@ function renderExpenses() {
     });
 
     document.getElementById("pageTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
-    renderCategoryWiseReport();
-}
-
-function renderCategoryWiseReport() {
-    const tbody = document.getElementById("categoryReportTableBody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    if (expenses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No expense records available.</td></tr>`;
-        return;
-    }
-
-    const categoryTotals = {};
-    let grandTotal = 0;
-
-    expenses.forEach(exp => {
-        const cat = exp.category || "Other";
-        const amt = Number(exp.amount) || 0;
-        
-        if (!categoryTotals[cat]) {
-            categoryTotals[cat] = { totalAmount: 0, count: 0 };
-        }
-        categoryTotals[cat].totalAmount += amt;
-        categoryTotals[cat].count += 1;
-        grandTotal += amt;
-    });
-
-    const sortedCategories = Object.keys(categoryTotals).sort(
-        (a, b) => categoryTotals[b].totalAmount - categoryTotals[a].totalAmount
-    );
-
-    sortedCategories.forEach(cat => {
-        const data = categoryTotals[cat];
-        const percentage = grandTotal > 0 ? ((data.totalAmount / grandTotal) * 100).toFixed(1) : 0;
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td><strong>${cat}</strong></td>
-            <td>৳${data.totalAmount.toFixed(2)}</td>
-            <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="flex: 1; background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
-                        <div style="width: ${percentage}%; background: var(--primary); height: 100%;"></div>
-                    </div>
-                    <span style="font-size: 11px; font-weight: 600; min-width: 40px;">${percentage}%</span>
-                </div>
-            </td>
-            <td>${data.count}</td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    const totalRow = document.createElement("tr");
-    totalRow.style.fontWeight = "700";
-    totalRow.style.background = "#f8fafc";
-    totalRow.innerHTML = `
-        <td>Total Overall Expenses</td>
-        <td>৳${grandTotal.toFixed(2)}</td>
-        <td>100%</td>
-        <td>${expenses.length}</td>
-    `;
-    tbody.appendChild(totalRow);
 }
 
 function handleIncomeSubmit(e) {
@@ -2196,127 +2346,6 @@ function formatMonthYear(monthString) {
     const [year, month] = monthString.split('-');
     const date = new Date(year, parseInt(month) - 1, 1);
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-}
-
-function generateMonthlyReport() {
-    const selected = document.getElementById("reportMonth").value;
-    const reportType = document.getElementById("reportType").value;
-    if (!selected) return alert("Select a target month first.");
-
-    const dataset = reportType === 'expense' ? expenses : incomes;
-    const total = dataset
-        .filter(item => item.date.startsWith(selected))
-        .reduce((sum, item) => sum + item.amount, 0);
-
-    const formattedMonth = formatMonthYear(selected);
-    const typeLabel = reportType === 'expense' ? 'Expense' : 'Income';
-    document.getElementById("reportOutput").innerText = `${formattedMonth} ${typeLabel}: ৳${total.toFixed(2)}`;
-}
-
-function exportPDFReport() {
-    const selected = document.getElementById("reportMonth").value;
-    const reportType = document.getElementById("reportType").value;
-    if (!selected) return alert("Select a month to export.");
-
-    const formattedMonth = formatMonthYear(selected);
-    const isExpense = reportType === 'expense';
-    const dataset = isExpense ? expenses : incomes;
-    const filtered = dataset.filter(item => item.date.startsWith(selected));
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const userObj = users.find(u => u.username === currentUser) || { name: currentUser };
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.setTextColor(37, 99, 235);
-    doc.text(isExpense ? "Monthly Expense Statement" : "Monthly Income Statement", 14, 22);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Report Period: ${formattedMonth}`, 14, 29);
-    doc.text(`Generated For: ${userObj.name}`, 14, 34);
-
-    let y = 45;
-    doc.setFillColor(241, 245, 249);
-    doc.rect(14, y - 5, 182, 8, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    
-    doc.text("Date", 16, y);
-    doc.text(isExpense ? "Category" : "Source", 52, y);
-    doc.text("Description", 100, y);
-    doc.text("Amount (BDT)", 165, y);
-
-    y += 4;
-    doc.setDrawColor(203, 213, 225);
-    doc.line(14, y, 196, y);
-
-    let subtotal = 0;
-    doc.setFont("helvetica", "normal");
-    
-    if (filtered.length === 0) {
-        y += 10;
-        doc.setTextColor(100, 116, 139);
-        doc.text("No records found for this selected period.", 14, y);
-    } else {
-        filtered.forEach(item => {
-            y += 8;
-            if (y > 265) {
-                doc.addPage();
-                y = 20;
-            }
-            doc.setTextColor(30, 41, 59);
-            doc.text(item.date, 16, y);
-            doc.text(isExpense ? item.category : item.source, 52, y);
-            doc.text((item.description || '').substring(0, 25), 100, y);
-            
-            const amtText = `Tk ${item.amount.toFixed(2)}`;
-            doc.text(amtText, 195 - doc.getTextWidth(amtText), y);
-            
-            subtotal += item.amount;
-        });
-    }
-
-    y += 6;
-    doc.setDrawColor(203, 213, 225);
-    doc.line(14, y, 196, y);
-
-    y += 10;
-    if (y > 265) {
-        doc.addPage();
-        y = 20;
-    }
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Total ${isExpense ? 'Expenses' : 'Income'}:`, 120, y);
-    
-    const finalTotalText = `Tk ${subtotal.toFixed(2)}`;
-    doc.setTextColor(isExpense ? 220 : 16, isExpense ? 38 : 185, isExpense ? 38 : 129);
-    doc.text(finalTotalText, 195 - doc.getTextWidth(finalTotalText), y);
-
-    const pageCount = doc.internal.getNumberOfPages();
-    const currentDate = new Date().toLocaleDateString('en-GB');
-    
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, 280, 196, 280);
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(148, 163, 184);
-        
-        doc.text(`Money Expense Tracker | Generated on ${currentDate}`, 14, 286);
-        doc.text(`Page ${i} of ${pageCount}`, 196 - doc.getTextWidth(`Page ${i} of ${pageCount}`), 286);
-    }
-
-    doc.save(`${isExpense ? 'Expenses' : 'Income'}_${selected}.pdf`);
 }
 
 function loadProfileFields() {
