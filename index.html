@@ -645,37 +645,6 @@ th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
     font-weight:700;
 }
 
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(8px);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 600;
-    padding: 16px;
-}
-
-.modal-card {
-    background: #ffffff;
-    width: 100%;
-    max-width: 450px;
-    padding: 24px;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.modal-header h3 { margin: 0; color: var(--primary); font-size: 18px; }
-.close-modal { cursor: pointer; font-size: 26px; color: var(--text-muted); line-height: 1; }
-
 .page-summary-bar {
     display: flex;
     justify-content: space-between;
@@ -935,6 +904,7 @@ footer {
                     </div>
                 </div>
             </form>
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -948,6 +918,26 @@ footer {
                     </thead>
                     <tbody id="modalExpenseTableBody"></tbody>
                 </table>
+            </div>
+
+            <!-- CATEGORY-WISE BREAKDOWN TABLE REPORT -->
+            <div class="report-box" style="margin-top: 28px; text-align: left;">
+                <h3 style="margin-bottom: 14px; color: var(--primary); text-align: left; font-size: 18px;">📊 Category-Wise Expense Report</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Total Amount (৳)</th>
+                                <th>Share (% of Total)</th>
+                                <th>Transactions Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoryReportTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -1164,6 +1154,7 @@ footer {
                     <li>Google Sheets cloud persistence sync</li>
                     <li>Separated Borrowed & Lent controls per person</li>
                     <li>Expense, Income & Debt modules</li>
+                    <li>Category-wise spending breakdown</li>
                     <li>Partial loan repayments with full audit history</li>
                     <li>Interactive category chart analytics</li>
                     <li>Monthly summary & PDF export</li>
@@ -1180,7 +1171,6 @@ footer {
     </main>
 </div>
 
-    
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypKUwAZozQmKP3yI9E9HuKSxJxV5ADBJ2sAIRx6xL-QCy4bpU7cWSp8xFeW7A__gVc/exec";
 
@@ -1197,10 +1187,6 @@ let editingIndex = -1;
 let editingIncomeIndex = -1;
 let chartInstance = null;
 
-/**
- * HELPER: Normalizes any date input string to an exact YYYY-MM-DD local format string
- * This eliminates Google Apps Script GMT UTC date shifts.
- */
 function cleanDateStr(dateStr) {
     if (!dateStr) return "";
     let str = String(dateStr).trim();
@@ -1235,7 +1221,6 @@ async function loadUserData() {
         const res = await fetch(`${SCRIPT_URL}?action=getData&username=${encodeURIComponent(currentUser)}`);
         const data = await res.json();
         
-        // Clean incoming dates to enforce local timezone matching
         expenses = (data.expenses || []).map(e => ({ ...e, date: cleanDateStr(e.date) }));
         incomes = (data.incomes || []).map(i => ({ ...i, date: cleanDateStr(i.date) }));
         loans = (data.loans || []).map(item => ({
@@ -1251,6 +1236,7 @@ async function loadUserData() {
         }));
         
         renderDashboard();
+        renderExpenses();
     } catch(err) {
         console.error("Cloud Fetch Error:", err);
     } finally {
@@ -1271,7 +1257,6 @@ async function saveUserData() {
 
         await fetch(SCRIPT_URL, {
             method: "POST",
-            // Using text/plain avoids CORS preflight triggers and passes raw text to Apps Script
             headers: {
                 "Content-Type": "text/plain;charset=utf-8"
             },
@@ -1512,6 +1497,69 @@ function renderExpenses() {
     });
 
     document.getElementById("pageTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
+    renderCategoryWiseReport();
+}
+
+function renderCategoryWiseReport() {
+    const tbody = document.getElementById("categoryReportTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (expenses.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No expense records available.</td></tr>`;
+        return;
+    }
+
+    const categoryTotals = {};
+    let grandTotal = 0;
+
+    expenses.forEach(exp => {
+        const cat = exp.category || "Other";
+        const amt = Number(exp.amount) || 0;
+        
+        if (!categoryTotals[cat]) {
+            categoryTotals[cat] = { totalAmount: 0, count: 0 };
+        }
+        categoryTotals[cat].totalAmount += amt;
+        categoryTotals[cat].count += 1;
+        grandTotal += amt;
+    });
+
+    const sortedCategories = Object.keys(categoryTotals).sort(
+        (a, b) => categoryTotals[b].totalAmount - categoryTotals[a].totalAmount
+    );
+
+    sortedCategories.forEach(cat => {
+        const data = categoryTotals[cat];
+        const percentage = grandTotal > 0 ? ((data.totalAmount / grandTotal) * 100).toFixed(1) : 0;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td><strong>${cat}</strong></td>
+            <td>৳${data.totalAmount.toFixed(2)}</td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="flex: 1; background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="width: ${percentage}%; background: var(--primary); height: 100%;"></div>
+                    </div>
+                    <span style="font-size: 11px; font-weight: 600; min-width: 40px;">${percentage}%</span>
+                </div>
+            </td>
+            <td>${data.count}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    const totalRow = document.createElement("tr");
+    totalRow.style.fontWeight = "700";
+    totalRow.style.background = "#f8fafc";
+    totalRow.innerHTML = `
+        <td>Total Overall Expenses</td>
+        <td>৳${grandTotal.toFixed(2)}</td>
+        <td>100%</td>
+        <td>${expenses.length}</td>
+    `;
+    tbody.appendChild(totalRow);
 }
 
 function handleIncomeSubmit(e) {
