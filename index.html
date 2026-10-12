@@ -901,10 +901,18 @@ footer {
         <!-- EXPENSES VIEW -->
         <section class="page-view" id="expensesView">
             <h2 class="page-header">📉 Manage Expenses</h2>
-            <div class="page-summary-bar">
-                <span>Total Expenses Recorded:</span>
-                <span id="pageTotalExpense" style="color: var(--danger);">৳0.00</span>
+            
+            <!-- Month Selector & Summary Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; background: #f8fafc; padding: 14px 18px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="expenseMonthFilter" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-muted);">Select Month:</label>
+                    <input type="month" id="expenseMonthFilter" class="form-control" style="width: 170px; height: 38px; font-size: 14px;" onchange="renderExpenses()">
+                </div>
+                <div style="font-size: 14px; font-weight: 600;">
+                    Total Expenses: <span id="pageTotalExpense" style="color: var(--danger); font-size: 18px;">৳0.00</span>
+                </div>
             </div>
+
             <form id="modalExpenseForm" onsubmit="handleExpenseSubmit(event)">
                 <div class="expense-form-grid" style="margin-bottom: 20px;">
                     <div class="form-group">
@@ -1225,6 +1233,13 @@ function cleanDateStr(dateStr) {
 
 window.onload = function() {
     localStorage.setItem("users", JSON.stringify(users));
+    
+    // Set default month filter to current month (YYYY-MM)
+    const now = new Date();
+    const currYearMonth = now.toISOString().slice(0, 7);
+    const monthInput = document.getElementById("expenseMonthFilter");
+    if (monthInput) monthInput.value = currYearMonth;
+
     if (currentUser) {
         initDashboard();
     }
@@ -1689,25 +1704,39 @@ function handleExpenseSubmit(e) {
 function renderExpenses() {
     expenses.sort((a, b) => new Date(b.date + "T00:00:00") - new Date(a.date + "T00:00:00"));
     const tbody = document.getElementById("modalExpenseTableBody");
-    if(!tbody) return;
+    if (!tbody) return;
     tbody.innerHTML = "";
-    
+
+    const selectedMonth = document.getElementById("expenseMonthFilter").value; // Format: YYYY-MM
+
     let totalExp = 0;
+    let matchCount = 0;
+
     expenses.forEach((item, index) => {
-        totalExp += item.amount;
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${item.date}</td>
-            <td>${item.category}</td>
-            <td>${item.description}</td>
-            <td>৳${item.amount.toFixed(2)}</td>
-            <td class="table-actions">
-                <button class="btn-action btn-edit" onclick="startEdit(${index})">Edit</button>
-                <button class="btn-action btn-delete" onclick="deleteExpense(${index})">Delete</button>
-            </td>
-        `;
-        tbody.appendChild(row);
+        // Filter expenses matching the selected month dropdown
+        const matchesMonth = !selectedMonth || item.date.startsWith(selectedMonth);
+
+        if (matchesMonth) {
+            matchCount++;
+            totalExp += item.amount;
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.category}</td>
+                <td>${item.description}</td>
+                <td>৳${item.amount.toFixed(2)}</td>
+                <td class="table-actions">
+                    <button class="btn-action btn-edit" onclick="startEdit(${index})">Edit</button>
+                    <button class="btn-action btn-delete" onclick="deleteExpense(${index})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
     });
+
+    if (matchCount === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No expense records found for the selected month.</td></tr>`;
+    }
 
     document.getElementById("pageTotalExpense").innerText = `৳${totalExp.toFixed(2)}`;
 }
